@@ -1,0 +1,1739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chord Editor — Grateful Dead Lyrics</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Righteous&family=Quicksand:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0.3'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.13'/%3E%3C/svg%3E"),
+        none;
+      background-color: #e8ddc4;
+      background-size: 300px 300px, auto;
+      font-family: 'Quicksand', sans-serif;
+      color: #2a1505;
+    }
+
+    .page {
+      max-width: 100%;
+      margin: 0 auto;
+      padding: 36px 48px 80px;
+    }
+
+    /* ── Header ── */
+    .editor-header {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+
+    .back-btn {
+      background: rgba(200, 180, 140, 0.35);
+      border: 1px solid rgba(100, 70, 30, 0.35);
+      border-radius: 10px;
+      color: rgba(60, 35, 10, 0.8);
+      font-family: 'Quicksand', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 8px 16px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .back-btn:hover {
+      background: rgba(180, 155, 110, 0.5);
+      border-color: rgba(100, 70, 30, 0.65);
+      color: #2a1505;
+    }
+
+    .editor-title {
+      font-family: 'Cinzel Decorative', cursive;
+      font-size: 1.4rem;
+      color: #5a2800;
+      line-height: 1.3;
+      flex: 1;
+    }
+
+    .header-controls {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .header-key-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .key-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: rgba(80, 45, 10, 0.7);
+      letter-spacing: 0.06em;
+    }
+
+    .key-select {
+      background: rgba(200, 180, 140, 0.4);
+      border: 1px solid rgba(100, 70, 30, 0.4);
+      border-radius: 8px;
+      color: #3a1a00;
+      font-family: 'Quicksand', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    /* Highlight the key dropdown when publish is attempted without a key */
+    .key-select.key-required {
+      border-color: rgba(180, 60, 30, 0.8);
+      box-shadow: 0 0 0 2px rgba(180, 60, 30, 0.2);
+      animation: shake 0.45s ease;
+    }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      15%      { transform: translateX(-5px); }
+      35%      { transform: translateX(5px); }
+      55%      { transform: translateX(-4px); }
+      75%      { transform: translateX(3px); }
+    }
+
+    /* ✦ Suggest key button */
+    .suggest-key-btn {
+      background: rgba(80, 55, 120, 0.08);
+      border: 1px solid rgba(80, 55, 120, 0.3);
+      border-radius: 20px;
+      color: rgba(55, 30, 100, 0.65);
+      font-family: 'Quicksand', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 4px 11px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .suggest-key-btn:hover {
+      background: rgba(80, 55, 120, 0.16);
+      border-color: rgba(80, 55, 120, 0.55);
+      color: rgba(55, 30, 100, 0.9);
+    }
+    .suggest-key-btn:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    /* Suggestion confidence note */
+    .key-suggestion-note {
+      font-size: 0.68rem;
+      color: rgba(55, 30, 100, 0.55);
+      font-style: italic;
+      text-align: right;
+      max-width: 320px;
+      line-height: 1.4;
+    }
+    .key-suggestion-note.error {
+      color: rgba(160, 40, 40, 0.65);
+    }
+
+    /* ── Format hint ── */
+    .format-hint {
+      width: 190px;
+      flex-shrink: 0;
+      padding: 0 16px 0 0;
+      font-size: 0.84rem;
+      color: rgba(80, 50, 15, 0.65);
+      line-height: 1.7;
+      border-right: 2px solid rgba(100, 70, 30, 0.15);
+    }
+
+    .format-hint strong {
+      display: block;
+      color: rgba(80, 50, 15, 0.85);
+      font-weight: 700;
+      margin-bottom: 10px;
+      letter-spacing: 0.04em;
+      font-size: 0.9rem;
+    }
+    .format-hint code {
+      font-family: 'Courier New', monospace;
+      background: rgba(120, 90, 40, 0.12);
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-size: 0.76rem;
+    }
+
+    /* ── Inline chord example inside format hint ── */
+    .format-example {
+      margin-top: 10px;
+      padding: 8px 10px;
+      background: rgba(200, 180, 140, 0.18);
+      border: 1px solid rgba(100, 70, 30, 0.1);
+      border-radius: 6px;
+      line-height: 1.4;
+    }
+    .format-example code {
+      display: block;
+      margin-bottom: 0;
+    }
+    .format-example-eq {
+      font-size: 0.75rem;
+      color: rgba(100, 65, 20, 0.4);
+      margin: 5px 0 3px;
+    }
+    .format-example .format-chord-preview {
+      font-size: 0.65rem;
+    }
+
+    /* ── Two-panel layout: sticky left | scrolling right ── */
+    .editor-layout {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+    }
+
+    /* Left panel: format-hint + input + chord library, all sticky */
+    .editor-left {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+      position: sticky;
+      top: 20px;
+    }
+
+    /* Right panel: preview + song info, grows with content */
+    .editor-right {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+    }
+
+    /* Preview column wrapper */
+    .preview-column {
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* ── Song info column (col 4) ── */
+    .song-info-column {
+      width: 210px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Credits / metadata panel ── */
+    .credits-panel {
+      padding: 14px 16px;
+      background: rgba(180, 160, 120, 0.12);
+      border: 1px solid rgba(100, 70, 30, 0.2);
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      /* no flex:1 — box sizes to content */
+    }
+
+    .credits-field {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    /* Secondary fields (Music by, Lyrics by, Album) are more compact */
+    .credits-field.secondary {
+      gap: 2px;
+    }
+
+    .credits-field-label {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(100, 65, 20, 0.5);
+    }
+
+    /* Artist input — full size with underline */
+    .credits-field-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid rgba(100, 70, 30, 0.25);
+      color: #2a1505;
+      font-family: 'Quicksand', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 3px 0 4px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .credits-field-input::placeholder {
+      color: rgba(100, 70, 30, 0.28);
+      font-weight: 400;
+    }
+
+    .credits-field-input:focus {
+      border-bottom-color: rgba(100, 70, 30, 0.6);
+    }
+
+    .credits-field-input.field-required-empty {
+      border-bottom-color: rgba(180, 60, 30, 0.6);
+    }
+
+    /* Secondary inputs — smaller, no underline */
+    .credits-field-input.secondary {
+      font-size: 0.74rem;
+      font-weight: 600;
+      border-bottom: none;
+      padding: 1px 0 2px;
+      color: rgba(42, 21, 5, 0.8);
+    }
+
+    .credits-field-input.secondary::placeholder {
+      font-style: italic;
+      font-weight: 400;
+    }
+
+    /* Album + Year inline row */
+    .album-year-row {
+      display: flex;
+      align-items: baseline;
+      gap: 0;
+      flex-wrap: nowrap;
+    }
+
+    .credits-year-input {
+      width: 2.0rem;   /* snug fit for 4 digits at 0.74rem */
+      flex-shrink: 0;
+      padding-left: 0;
+      padding-right: 0;
+      text-align: center;
+    }
+
+    .album-year-paren {
+      font-size: 0.74rem;
+      color: rgba(80, 50, 15, 0.55);
+      font-weight: 600;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    /* Divider between artist and the secondary block */
+    .credits-divider {
+      border: none;
+      border-top: 1px solid rgba(100, 70, 30, 0.12);
+      margin: 2px 0;
+    }
+
+    .credits-required-note {
+      font-size: 0.62rem;
+      color: rgba(180, 60, 30, 0.65);
+      font-style: italic;
+      display: none;
+    }
+    .credits-required-note.visible {
+      display: block;
+    }
+
+    .pane-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(100, 65, 20, 0.5);
+      margin-bottom: 8px;
+    }
+
+    /* ── Input pane — fills remaining left-panel width ── */
+    .input-pane {
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* ── Textarea ── */
+    .chord-textarea {
+      width: 100%;
+      height: calc(100vh - 280px);
+      min-height: 280px;
+      padding: 16px 18px;
+      border: 1px solid rgba(100, 70, 30, 0.3);
+      border-radius: 10px;
+      background: rgba(250, 245, 232, 0.7);
+      color: #2a1505;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.88rem;
+      line-height: 1.65;
+      resize: none;
+      outline: none;
+      overflow-y: auto;
+      transition: border-color 0.2s ease;
+    }
+
+    .chord-textarea:focus {
+      border-color: rgba(100, 70, 30, 0.6);
+      background: rgba(253, 248, 238, 0.9);
+    }
+
+    .chord-textarea::placeholder {
+      color: rgba(100, 70, 30, 0.3);
+    }
+
+    /* ── Preview panel — grows to fit content, page scrolls ── */
+    .preview-panel {
+      padding: 16px 18px;
+      border: 1px solid rgba(100, 70, 30, 0.2);
+      border-radius: 10px;
+      background: rgba(250, 245, 232, 0.4);
+      min-height: calc(150vh - 280px);
+    }
+
+    .preview-empty {
+      color: rgba(100, 70, 30, 0.3);
+      font-style: italic;
+      font-size: 0.85rem;
+      padding-top: 4px;
+    }
+
+    /* ── Chord rendering (same as songs.html) ── */
+    .lyrics-body {
+      font-size: 1.02rem;
+      line-height: 1.1;
+      color: #2e1a06;
+    }
+
+    .lyrics-body.chords-on .chord-line {
+      margin-bottom: 6px;
+    }
+
+    .lyrics-section {
+      margin-bottom: 24px;
+    }
+
+    .section-label {
+      font-size: 0.78rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(120, 80, 30, 0.55);
+      margin-bottom: 4px;
+    }
+
+    .chord-line { display: block; }
+
+    .chord-segment {
+      display: inline-flex;
+      flex-direction: column;
+      vertical-align: bottom;
+    }
+
+    .chord-name {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #6655d4;
+      line-height: 1;
+      min-height: 1em;
+      letter-spacing: 0.03em;
+      padding-right: 3px;
+    }
+
+    /* ── Output row — lives under the input pane ── */
+    .output-row {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .output-hint {
+      font-size: 0.78rem;
+      color: rgba(80, 50, 15, 0.55);
+      line-height: 1.5;
+    }
+
+    .output-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    .output-btn {
+      background: rgba(200, 180, 140, 0.4);
+      border: 1px solid rgba(100, 70, 30, 0.4);
+      border-radius: 20px;
+      color: rgba(60, 35, 10, 0.75);
+      font-family: 'Quicksand', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 6px 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      letter-spacing: 0.04em;
+    }
+
+    .output-btn:hover {
+      background: rgba(160, 120, 60, 0.45);
+      border-color: rgba(100, 70, 30, 0.7);
+      color: #3a1a00;
+    }
+
+    .output-btn.success {
+      background: rgba(60, 130, 60, 0.2);
+      border-color: rgba(40, 100, 40, 0.4);
+      color: rgba(30, 80, 30, 0.85);
+    }
+
+    /* ── Publish button ── */
+    .publish-btn {
+      background: rgba(30, 100, 60, 0.12);
+      border-color: rgba(30, 100, 60, 0.4);
+      color: rgba(20, 75, 45, 0.8);
+    }
+    .publish-btn:hover {
+      background: rgba(30, 100, 60, 0.22);
+      border-color: rgba(30, 100, 60, 0.65);
+      color: rgba(20, 75, 45, 1);
+    }
+    .publish-btn:disabled { opacity: 0.5; cursor: default; }
+
+    .output-instructions {
+      font-size: 0.7rem;
+      color: rgba(80, 50, 15, 0.5);
+      font-style: italic;
+      line-height: 1.5;
+    }
+
+    .output-instructions code {
+      font-family: 'Courier New', monospace;
+      background: rgba(120, 90, 40, 0.1);
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-size: 0.75rem;
+      font-style: normal;
+    }
+
+    /* ── Generate Scale Tips button ── */
+    .generate-btn {
+      background: rgba(80, 55, 120, 0.12);
+      border-color: rgba(80, 55, 120, 0.35);
+      color: rgba(55, 30, 100, 0.75);
+    }
+    .generate-btn:hover {
+      background: rgba(80, 55, 120, 0.22);
+      border-color: rgba(80, 55, 120, 0.6);
+      color: rgba(55, 30, 100, 0.95);
+    }
+    .generate-btn:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    /* ── Scale tips result area ── */
+    .scale-tips-result {
+      display: none;
+      border-top: 1px solid rgba(100, 70, 30, 0.15);
+      padding-top: 12px;
+      margin-top: 4px;
+    }
+
+    .scale-tips-result-label {
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(80, 55, 120, 0.5);
+      margin-bottom: 10px;
+    }
+
+    .scale-tip-section {
+      margin-bottom: 12px;
+    }
+
+    .scale-tip-section-label {
+      font-size: 0.68rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(100, 70, 30, 0.5);
+      margin-bottom: 5px;
+    }
+
+    .scale-tip-entry {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      margin-bottom: 7px;
+      padding-left: 8px;
+      border-left: 2px solid rgba(80, 55, 120, 0.2);
+    }
+
+    .scale-tip-name {
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: rgba(55, 30, 100, 0.75);
+    }
+
+    .scale-tip-notes {
+      font-family: 'Courier New', monospace;
+      font-size: 0.72rem;
+      color: rgba(80, 50, 15, 0.6);
+      letter-spacing: 0.04em;
+    }
+
+    .scale-tip-note-text {
+      font-size: 0.71rem;
+      color: rgba(60, 38, 12, 0.6);
+      font-style: italic;
+      line-height: 1.5;
+    }
+
+    .scale-tips-error {
+      font-size: 0.73rem;
+      color: rgba(160, 40, 40, 0.7);
+      font-style: italic;
+    }
+
+    /* ── Chord Library section (below input, inside left panel) ── */
+    .chord-library-section {
+      margin-top: 24px;
+    }
+
+    .chord-library-section .pane-label {
+      margin-bottom: 16px;
+    }
+
+    .palette-section {
+      padding: 20px 24px;
+      background: rgba(180, 160, 120, 0.12);
+      border: 1px solid rgba(100, 70, 30, 0.15);
+      border-radius: 12px;
+    }
+
+    /* Chords flow horizontally across the strip */
+    .palette-chords {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 28px;
+      align-items: flex-start;
+    }
+
+    .palette-chord-group {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+      width: 100%;
+    }
+
+    .palette-chord-name {
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: #6655d4;
+      letter-spacing: 0.04em;
+    }
+
+    /* Voicings flow horizontally, wrapping if needed */
+    .palette-voicings {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: flex-start;
+    }
+
+    .palette-voicing-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .palette-voicing-type {
+      font-size: 0.58rem;
+      color: rgba(80, 50, 15, 0.45);
+      font-style: italic;
+      text-align: center;
+      max-width: 56px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .palette-empty {
+      color: rgba(100, 70, 30, 0.3);
+      font-style: italic;
+      font-size: 0.82rem;
+      padding: 4px 0;
+    }
+
+    /* ── Scale tips panel (full-width, below palette) ── */
+    .tips-section {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(100, 70, 30, 0.12);
+    }
+  </style>
+  <script src="auth.js"></script>
+</head>
+<body>
+  <div class="page">
+
+    <!-- Header -->
+    <div class="editor-header">
+      <a class="back-btn" href="#" onclick="history.back(); return false;">← Back to song</a>
+      <div class="editor-title" id="editor-title">Chord Editor</div>
+      <div class="header-controls">
+        <div class="header-key-row">
+          <span class="key-label">Key:</span>
+          <select class="key-select" id="key-select">
+            <option value="">— key —</option>
+            <option>C</option><option>C#</option><option>D</option><option>Eb</option>
+            <option>E</option><option>F</option><option>F#</option><option>G</option>
+            <option>Ab</option><option>A</option><option>Bb</option><option>B</option>
+          </select>
+          <button class="suggest-key-btn" id="suggest-key-btn" onclick="runSuggestKey()">✦ Suggest</button>
+        </div>
+        <div class="key-suggestion-note" id="key-suggestion-note"></div>
+      </div>
+    </div>
+
+    <!-- Two-panel layout: sticky left (format + input + chord library) | scrolling right (preview + song info) -->
+    <div class="editor-layout">
+
+      <!-- LEFT PANEL: sticks in viewport while right panel scrolls -->
+      <div class="editor-left">
+
+        <!-- Format hint / instructions -->
+        <div class="format-hint">
+          <strong>Instructions</strong>
+          Copy/paste or type lyrics (and chords if you have them) in the Input box. Separate sections with a blank line. The first line of each section becomes the section label (Chorus 1, Verse 2, etc.).<br><br>
+          Place chords in [ ] brackets just before the syllable they fall on:
+          <div class="format-example">
+            <code>[E]With the mo[D]rning sun…</code>
+            <div class="format-example-eq">= </div>
+            <div class="format-chord-preview lyrics-body chords-on"><span class="chord-line"><span class="chord-segment"><span class="chord-name">E</span><span class="chord-lyric">With the mo</span></span><span class="chord-segment"><span class="chord-name">D</span><span class="chord-lyric">rning sun…</span></span></span></div>
+          </div>
+        </div>
+
+        <!-- Input pane + chord library below it -->
+        <div class="input-pane">
+          <div class="pane-label">Input</div>
+          <textarea
+            class="chord-textarea"
+            id="chord-input"
+            placeholder="Verse 1&#10;[G]If my words did glow with the gold of [C]sunshine&#10;And my tunes were played on the harp un[G]strung,&#10;&#10;Chorus&#10;[Am]Ripple in still [D]water&#10;When there [G]is no pebble [C]tossed"
+            oninput="schedulePreview()"
+            spellcheck="false"
+          ></textarea>
+          <div class="output-row">
+            <p class="output-hint">Pick a key and hit Generate Scale Tips. When you're happy with the results, hit Publish to App to save!</p>
+            <div class="output-buttons">
+              <button class="output-btn generate-btn" id="generate-btn" onclick="generateScaleTips()">✦ Generate Scale Tips</button>
+              <button class="output-btn publish-btn" id="publish-btn" onclick="publishToApp()">▲ Publish to App</button>
+            </div>
+          </div>
+
+          <!-- Chord Library — lives below input, right edge aligns with input -->
+          <div class="chord-library-section" id="chord-library-section">
+            <div class="pane-label">Chord Library</div>
+            <div class="palette-section" id="palette-section">
+              <div class="palette-chords" id="chord-palette">
+                <div class="palette-empty">Add chords to see diagrams here…</div>
+              </div>
+              <div class="tips-section" id="tips-section" style="display:none;">
+                <div id="scale-tips-result"></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div><!-- /.editor-left -->
+
+      <!-- RIGHT PANEL: grows with content, page scrolls -->
+      <div class="editor-right">
+
+        <!-- Preview -->
+        <div class="preview-column">
+          <div class="pane-label">Preview</div>
+          <div class="preview-panel" id="preview-panel">
+            <div class="preview-empty">Start typing to see a live preview…</div>
+          </div>
+        </div>
+
+        <!-- Song Info / Credits -->
+        <div class="song-info-column">
+          <div class="pane-label">Song Info</div>
+          <div class="credits-panel" id="credits-panel">
+
+            <div class="credits-field">
+              <label class="credits-field-label">Artist *</label>
+              <input class="credits-field-input" id="meta-artist" type="text" placeholder="e.g. The Grateful Dead" />
+              <span class="credits-required-note" id="meta-artist-note">Artist is required to publish</span>
+            </div>
+
+            <div class="credits-field secondary">
+              <label class="credits-field-label">Music by</label>
+              <input class="credits-field-input secondary" id="meta-music-by" type="text" placeholder="e.g. Jerry Garcia" />
+            </div>
+
+            <div class="credits-field secondary">
+              <label class="credits-field-label">Lyrics by</label>
+              <input class="credits-field-input secondary" id="meta-lyrics-by" type="text" placeholder="e.g. Robert Hunter" />
+            </div>
+
+            <div class="credits-field secondary">
+              <label class="credits-field-label">Album</label>
+              <div class="album-year-row">
+                <input class="credits-field-input secondary" id="meta-album" type="text" placeholder="Album title" style="width:7ch; min-width:0; flex-shrink:1;" oninput="sizeAlbumInput(this)" />
+                <span class="album-year-paren">(</span>
+                <input class="credits-field-input secondary credits-year-input" id="meta-year" type="text" placeholder="YYYY" maxlength="4"
+                  oninput="this.value=this.value.replace(/\D/g,'').slice(0,4)" />
+                <span class="album-year-paren">)</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div><!-- /.editor-right -->
+
+    </div><!-- /.editor-layout -->
+
+  </div>
+
+  <script src="chords-data.js"></script>
+  <script src="songs-data.js"></script>
+  <script>
+    // ── Cloudflare Worker URL ──────────────────────────────
+    // After deploying your Worker, replace this with your actual URL
+    const WORKER_URL = 'https://scale-tips.ejdanforth.workers.dev';
+
+    // ── Read URL params ────────────────────────────────────
+    const params      = new URLSearchParams(location.search);
+    const songId      = params.get('id')        || 'unknown-song';
+    const songTitle   = params.get('title')     || 'Unknown Song';
+    // Metadata passed from the Add New Song modal (may be empty for existing songs)
+    const paramArtist   = params.get('artist')   || '';
+    const paramMusicBy  = params.get('music_by') || '';
+    const paramLyricsBy = params.get('lyrics_by')|| '';
+    const paramAlbum    = params.get('album')    || '';
+    const paramYear     = params.get('year')     || '';
+
+    document.getElementById('editor-title').textContent = `Chord Editor — ${songTitle}`;
+
+    // ── Auto-size album input to its text content ─────────
+    function sizeAlbumInput(el) {
+      const text = el.value || '';
+      el.style.width = Math.max(7, text.length + 1) + 'ch';
+    }
+
+    // ── Populate Song Info fields ──────────────────────────
+    function populateMetaFields(artist, musicBy, lyricsBy, album, year) {
+      const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+      set('meta-artist',    artist);
+      set('meta-music-by',  musicBy);
+      set('meta-lyrics-by', lyricsBy);
+      set('meta-album',     album);
+      set('meta-year',      year);
+      sizeAlbumInput(document.getElementById('meta-album'));
+    }
+
+    // ── Pre-populate from existing chord data (if any) ─────
+    // Priority: KV (Worker) > static chords-data.js > blank
+    (async () => {
+      // Step 0: Fill Song Info from URL params (set by Add New Song modal).
+      // For existing songs opened via edit link, these will be empty — that's fine,
+      // we fall back to songs-data.js below.
+      populateMetaFields(paramArtist, paramMusicBy, paramLyricsBy, paramAlbum, paramYear);
+
+      // Step 0b: Backfill any blank Song Info fields from songs-data.js metadata.
+      const songMeta = typeof SONGS_DATA !== 'undefined'
+        ? SONGS_DATA.songs.find(s => s.id === songId)
+        : null;
+      if (songMeta) {
+        const fillIfEmpty = (id, val) => {
+          const el = document.getElementById(id);
+          if (el && !el.value && val) el.value = val;
+        };
+        fillIfEmpty('meta-artist',    songMeta.artist || '');
+        fillIfEmpty('meta-music-by',  (songMeta.music_by  || []).join(', '));
+        fillIfEmpty('meta-lyrics-by', (songMeta.lyrics_by || []).join(', '));
+        fillIfEmpty('meta-album',     songMeta.albums?.[0]?.title || '');
+        fillIfEmpty('meta-year',      songMeta.albums?.[0]?.year ? String(songMeta.albums[0].year) : '');
+        sizeAlbumInput(document.getElementById('meta-album'));
+      }
+
+      let entry = null;
+
+      // 1. Try live KV data from the Worker
+      try {
+        const res = await fetch(`${WORKER_URL}/songs`);
+        if (res.ok) {
+          const kv = await res.json();
+          // Only accept the KV entry if it has real section content —
+          // guards against a song being published with an empty textarea.
+          const candidate = kv && !kv.error && kv[songId];
+          if (candidate && candidate.sections && candidate.sections.length > 0) {
+            entry = candidate;
+          }
+        }
+      } catch (_) { /* Worker unavailable — fall through */ }
+
+      // 2. Fall back to static chords-data.js (loaded via <script> above)
+      if (!entry && typeof CHORDS_DATA !== 'undefined' && CHORDS_DATA[songId]) {
+        entry = CHORDS_DATA[songId];
+      }
+
+      // 3. Fall back to raw lyrics from songs-data.js (no chord data yet)
+      // Gives the user a pre-filled starting point they can annotate with chords.
+      if (!entry && typeof SONGS_DATA !== 'undefined') {
+        const meta = SONGS_DATA.songs.find(s => s.id === songId);
+        if (meta && meta.lyrics && meta.lyrics.length > 0) {
+          const blocks = meta.lyrics
+            .filter(s => s.section !== 'section')          // skip metadata blurbs
+            .map(s => {
+              const label = s.section.charAt(0).toUpperCase() + s.section.slice(1) + ' ' + s.number;
+              // Collapse blank lines within a section so they don't create
+              // false section splits when the editor parses the textarea.
+              const text  = s.text.replace(/\n{2,}/g, '\n').trim();
+              return `${label}\n${text}`;
+            });
+          if (blocks.length > 0) {
+            document.getElementById('chord-input').value = blocks.join('\n\n');
+            renderPreview();
+          }
+        }
+        return; // either populated from lyrics or genuinely new — either way, done
+      }
+
+      if (!entry) return; // new song — leave editor blank
+
+      // Set key dropdown
+      if (entry.key) {
+        const ks = document.getElementById('key-select');
+        if (ks) ks.value = entry.key;
+      }
+
+      // Convert sections array → textarea text
+      if (entry.sections && entry.sections.length > 0) {
+        const text = entry.sections
+          .map(s => `${s.label}\n${s.lines.join('\n')}`)
+          .join('\n\n');
+        document.getElementById('chord-input').value = text;
+        renderPreview();
+      }
+    })();
+
+    // ── Diatonic key-scoring algorithm ────────────────────
+    // Returns an array of { key, mode, score, diatonicCount, total }
+    // sorted best-first.  Works purely client-side — no network needed.
+    function suggestKey(chordNames) {
+      const CHR  = ['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
+      const NORM = {'Db':'C#','D#':'Eb','Gb':'F#','G#':'Ab','A#':'Bb'};
+
+      // Parse chord names into {root, quality} pairs.
+      // Normalize exotic spellings first (same rules as generateBarreVoicings).
+      function normalizeQual(s) {
+        return s
+          .replace(/[∆Δ△]7/g,'maj7').replace(/[∆Δ△]/g,'maj7').replace(/M7/g,'maj7')
+          .replace(/min/g,'m').replace(/-/g,'m')
+          .replace(/o7/g,'dim7').replace(/o(?!\w)/g,'dim').replace(/ø/g,'m7b5');
+      }
+      const parsed = chordNames.map(c => {
+        const n = normalizeQual(c);
+        const m = n.match(/^([A-G][b#]?)(.*)$/);
+        if (!m) return null;
+        return { root: NORM[m[1]] || m[1], quality: m[2] || '' };
+      }).filter(Boolean);
+      if (parsed.length === 0) return [];
+
+      // Scale degrees (semitones from root) for major, natural minor, and mixolydian.
+      const MAJOR_DEG      = [0, 2, 4, 5, 7, 9, 11];
+      const MINOR_DEG      = [0, 2, 3, 5, 7, 8, 10];
+      const MIXOLYDIAN_DEG = [0, 2, 4, 5, 7, 9, 10]; // major with ♭7
+
+      // For each scale degree: accepted chord qualities (most common first).
+      // Using arrays lets us award a quality-match bonus without hard exclusions.
+      const MAJOR_Q = [
+        ['','maj7','add9','6','9'],          // I
+        ['m','m7'],                          // ii
+        ['m','m7'],                          // iii
+        ['','maj7','add9'],                  // IV
+        ['','7','9','sus4'],                 // V  (dom 7th very common)
+        ['m','m7'],                          // vi
+        ['dim','dim7','m7b5'],               // vii°
+      ];
+      const MINOR_Q = [
+        ['m','m7'],                          // i
+        ['dim','m7b5','dim7'],               // ii°
+        ['','maj7'],                         // III
+        ['m','m7'],                          // iv
+        ['m','m7','','7','9'],               // v  (often raised to V)
+        ['','maj7','6'],                     // VI
+        ['','7'],                            // VII
+      ];
+      // Mixolydian: like major but the 7th degree is ♭7 (a major chord, not diminished).
+      // Extremely common in GD / rock: the flat-VII chord (e.g. A in the key of B)
+      // is the hallmark of this mode.
+      const MIXOLYDIAN_Q = [
+        ['','maj7','add9','6','9'],          // I
+        ['m','m7'],                          // ii
+        ['m','m7'],                          // iii
+        ['','maj7','add9'],                  // IV
+        ['m','m7','','7'],                   // v  (often major or dominant in practice)
+        ['','maj7','6'],                     // VI
+        ['','7','9'],                        // ♭VII  ← the defining chord
+      ];
+
+      const results = [];
+
+      for (const keyNote of CHR) {
+        const ki = CHR.indexOf(keyNote);
+
+        for (const [degrees, qualities, mode] of [
+          [MAJOR_DEG,      MAJOR_Q,      'major'],
+          [MINOR_DEG,      MINOR_Q,      'minor'],
+          [MIXOLYDIAN_DEG, MIXOLYDIAN_Q, 'mixolydian'],
+        ]) {
+          let score = 0, diatonicCount = 0;
+
+          for (const { root, quality } of parsed) {
+            const ri = CHR.indexOf(root);
+            if (ri === -1) continue;
+            const interval  = (ri - ki + 12) % 12;
+            const degreeIdx = degrees.indexOf(interval);
+
+            if (degreeIdx !== -1) {
+              diatonicCount++;
+              score += 2;                                      // diatonic root
+              if (qualities[degreeIdx].includes(quality)) score += 1; // quality match
+            }
+          }
+
+          results.push({ key: keyNote, mode, score, diatonicCount, total: parsed.length });
+        }
+      }
+
+      // Tiebreaker: prefer the key whose tonic note appears as a chord root in the
+      // progression (strong tonal-center signal).  Relative keys (e.g. B major /
+      // C# minor) always score identically on diatonic counting alone — this is
+      // what resolves them.
+      const chordRoots = new Set(parsed.map(c => c.root));
+      results.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        const aTonic = chordRoots.has(a.key) ? 1 : 0;
+        const bTonic = chordRoots.has(b.key) ? 1 : 0;
+        return (bTonic - aTonic) || a.key.localeCompare(b.key);
+      });
+      return results;
+    }
+
+    // ── Suggest-key button handler ─────────────────────────
+    function runSuggestKey() {
+      const noteEl = document.getElementById('key-suggestion-note');
+      const chords = getAllUniqueChords();
+
+      if (chords.length === 0) {
+        noteEl.textContent = 'Add some chords first.';
+        noteEl.className   = 'key-suggestion-note error';
+        return;
+      }
+
+      const results = suggestKey(chords);
+      if (results.length === 0) {
+        noteEl.textContent = 'Couldn\'t parse any chord names.';
+        noteEl.className   = 'key-suggestion-note error';
+        return;
+      }
+
+      const best = results[0];
+
+      // Set the dropdown
+      const ks = document.getElementById('key-select');
+      ks.value = best.key;
+
+      // Build the confidence note
+      const pct  = Math.round((best.diatonicCount / best.total) * 100);
+      const runners = results.slice(1, 4).filter(r => r.score >= best.score * 0.75);
+      const tiedRelative = runners.find(r => r.score === best.score);  // same-score = relative key
+      const alts = runners.map(r => `${r.key} ${r.mode}`).join(', ');
+
+      let msg = `Suggested ${best.key} ${best.mode} — ${best.diatonicCount}/${best.total} roots diatonic (${pct}%)`;
+      if (tiedRelative) {
+        msg += `. Tied with ${tiedRelative.key} ${tiedRelative.mode} (relative key — chose based on tonic presence)`;
+      } else if (alts) {
+        msg += `. Also: ${alts}`;
+      }
+
+      noteEl.textContent = msg;
+      noteEl.className   = 'key-suggestion-note';
+    }
+
+    // ── Chord voicing generator (self-contained copy from songs.html) ──
+    function generateBarreVoicings(chordName) {
+      const ROMAN = ['0','I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+      const TUNING = [4, 9, 2, 7, 11, 4];
+      const CHR    = ['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
+      const NORM   = {'Db':'C#','D#':'Eb','Gb':'F#','G#':'Ab','A#':'Bb'};
+
+      const INTERVALS = {
+        '':      [0,4,7],
+        'm':     [0,3,7],
+        '7':     [0,4,7,10],
+        'm7':    [0,3,7,10],
+        'maj7':  [0,4,7,11],
+        'maj9':  [0,2,4,7,11],
+        'm9':    [0,2,3,7,10],
+        '9':     [0,2,4,7,10],
+        'm7b5':  [0,3,6,10],
+        'dim7':  [0,3,6,9],
+        'dim':   [0,3,6],
+        '°7':    [0,3,6,9],
+        '°':     [0,3,6],
+        'aug':   [0,4,8],
+        '+':     [0,4,8],
+        'sus4':  [0,5,7],
+        'sus2':  [0,2,7],
+        '7sus4': [0,5,7,10],
+        '7b5':   [0,4,6,10],
+        '7#5':   [0,4,8,10],
+        'add9':  [0,2,4,7],
+        '6':     [0,4,7,9],
+        'm6':    [0,3,7,9],
+        '5':     [0,7],
+      };
+
+      function normalize(s) {
+        return s
+          .replace(/[∆Δ△]7/g,  'maj7')
+          .replace(/[∆Δ△]/g,   'maj7')
+          .replace(/M7/g,       'maj7')
+          .replace(/min/g,      'm')
+          .replace(/-/g,        'm')
+          .replace(/o7/g,       'dim7')
+          .replace(/o(?!\w)/g,  'dim')
+          .replace(/ø/g,        'm7b5');
+      }
+      const name = normalize(chordName);
+
+      const parsed = name.match(
+        /^([A-G][b#]?)(maj9|maj7|m9|m7b5|m7|m6|m|9|dim7|dim|aug|7sus4|7b5|7#5|7|sus4|sus2|add9|6|5|\+|°7|°)?$/
+      );
+      if (!parsed) return null;
+      const root    = NORM[parsed[1]] || parsed[1];
+      const quality = parsed[2] || '';
+      const rootIdx = CHR.indexOf(root);
+      if (rootIdx === -1) return null;
+      const intervals = INTERVALS[quality];
+      if (!intervals) return null;
+      const tones = intervals.map(i => (rootIdx + i) % 12);
+
+      const BARRE = {
+        E: {
+          '':    { rel:[ 0,2,2,1,0,0], fingers:[1,3,4,2,1,1] },
+          'm':   { rel:[ 0,2,2,0,0,0], fingers:[1,3,4,1,1,1] },
+          '7':   { rel:[ 0,2,0,1,0,0], fingers:[1,3,0,2,1,1] },
+          'm7':  { rel:[ 0,2,0,0,0,0], fingers:[1,3,0,0,1,1] },
+          'maj7':{ rel:[-1,2,1,1,0,0], fingers:[0,3,2,2,1,1] },
+        },
+        A: {
+          '':    { rel:[-1,0,2,2,2,0], fingers:[0,1,3,3,3,1] },
+          'm':   { rel:[-1,0,2,2,1,0], fingers:[0,1,3,4,2,1] },
+          '7':   { rel:[-1,0,2,0,2,0], fingers:[0,1,3,0,4,0] },
+          'm7':  { rel:[-1,0,2,0,1,0], fingers:[0,1,3,0,2,0] },
+          'maj7':{ rel:[-1,0,2,1,2,0], fingers:[0,1,3,2,4,0] },
+        }
+      };
+
+      function buildInversion(bassStr, bassTone) {
+        const bassFret = (bassTone - TUNING[bassStr] + 12) % 12;
+        const frets = Array(6).fill(-1);
+        for (let s = 0; s < 6; s++) {
+          if (s < bassStr) { frets[s] = -1; continue; }
+          if (s === bassStr) { frets[s] = bassFret; continue; }
+          let best = null, bestDist = Infinity;
+          for (const tone of tones) {
+            const f0 = (tone - TUNING[s] + 12) % 12;
+            for (const f of [f0, f0 + 12]) {
+              const dist = Math.abs(f - bassFret);
+              if (dist < bestDist || (dist === bestDist && f < best)) {
+                bestDist = dist; best = f;
+              }
+            }
+          }
+          frets[s] = best;
+        }
+        const active = frets.filter(f => f > 0);
+        if (active.length > 0 && Math.max(...active) - Math.min(...active) > 4) return null;
+        return frets;
+      }
+
+      const voicings = [];
+
+      if (BARRE.E[quality]) {
+        ['E', 'A'].forEach((shape, si) => {
+          const tmpl = BARRE[shape][quality];
+          if (!tmpl) return;
+          const barre = (rootIdx - TUNING[si] + 12) % 12;
+          const frets = tmpl.rel.map((r, i) => r < 0 ? -1 : barre + r);
+          voicings.push({
+            label:     chordName,
+            type:      barre === 0 ? 'open' : `barre ${ROMAN[barre]}`,
+            startFret: barre === 0 ? 1 : barre,
+            frets,
+            fingers:   tmpl.fingers,
+            notes:     frets.map((f, s) => f < 0 ? 'x' : CHR[(TUNING[s]+f)%12])
+          });
+        });
+      } else {
+        [0, 1].forEach(bs => {
+          const frets = buildInversion(bs, tones[0]);
+          if (!frets) return;
+          const pos   = frets.filter(x => x > 0);
+          const barre = (tones[0] - TUNING[bs] + 12) % 12;
+          voicings.push({
+            label:     chordName,
+            type:      barre === 0 ? 'open' : `pos. ${ROMAN[barre]}`,
+            startFret: pos.length > 0 ? Math.min(...pos) : 1,
+            frets,
+            fingers:   [0,0,0,0,0,0],
+            notes:     frets.map((f, s) => f < 0 ? 'x' : CHR[(TUNING[s]+f)%12])
+          });
+        });
+      }
+
+      [[1, '1st inv.'], [2, '2nd inv.']].forEach(([toneIdx, typeName]) => {
+        if (toneIdx >= tones.length) return;
+        const invTone = tones[toneIdx];
+        let bestFrets = null, bestSpan = Infinity;
+        for (let bs = 0; bs < 3; bs++) {
+          const f = buildInversion(bs, invTone);
+          if (!f) continue;
+          const active = f.filter(x => x > 0);
+          const span = active.length > 0 ? Math.max(...active) - Math.min(...active) : 0;
+          if (span < bestSpan) { bestSpan = span; bestFrets = f; }
+        }
+        if (!bestFrets) return;
+        const pos = bestFrets.filter(x => x > 0);
+        const sf  = pos.length > 0 ? Math.min(...pos) : 1;
+        voicings.push({
+          label:     chordName,
+          type:      typeName,
+          startFret: sf,
+          frets:     bestFrets,
+          fingers:   [0,0,0,0,0,0],
+          notes:     bestFrets.map((f, s) => f < 0 ? 'x' : CHR[(TUNING[s]+f)%12])
+        });
+      });
+
+      return voicings.length > 0 ? voicings : null;
+    }
+
+    // ── SVG chord diagram (small=true for palette view) ───
+    function renderChordDiagram(v, small) {
+      const SS = small ? 11 : 15;
+      const FS = small ? 11 : 15;
+      const ML = small ? 14 : 18;
+      const MT = small ? 12 : 16;
+      const MB = small ? 10 : 18;
+      const NF = 4;
+      const W  = ML + 5 * SS + 6;
+      const H  = MT + NF * FS + MB;
+      const sf = v.startFret || 1;
+      const gx = x => ML + x * SS;
+      const gy = y => MT + y * FS;
+      const r  = small ? 4 : 6;
+
+      let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+
+      if (sf === 1) {
+        s += `<rect x="${ML}" y="${MT}" width="${5*SS}" height="3" rx="1" fill="#3a1a00"/>`;
+      } else {
+        s += `<text x="2" y="${MT + FS*0.65}" font-size="${small ? 7 : 8}" fill="rgba(60,30,5,0.55)" font-family="Quicksand,sans-serif">${sf}fr</text>`;
+        s += `<line x1="${ML}" y1="${MT}" x2="${ML+5*SS}" y2="${MT}" stroke="rgba(60,30,5,0.3)" stroke-width="1"/>`;
+      }
+
+      for (let f = 1; f <= NF; f++) {
+        s += `<line x1="${ML}" y1="${gy(f)}" x2="${ML+5*SS}" y2="${gy(f)}" stroke="rgba(60,30,5,0.18)" stroke-width="1"/>`;
+      }
+      for (let i = 0; i < 6; i++) {
+        s += `<line x1="${gx(i)}" y1="${MT}" x2="${gx(i)}" y2="${gy(NF)}" stroke="rgba(60,30,5,0.35)" stroke-width="1"/>`;
+      }
+
+      v.frets.forEach((fret, i) => {
+        const x = gx(i);
+        if (fret === -1) {
+          const cx = x, cy = MT - (small ? 6 : 8);
+          s += `<line x1="${cx-3}" y1="${cy-3}" x2="${cx+3}" y2="${cy+3}" stroke="rgba(60,30,5,0.45)" stroke-width="1.5" stroke-linecap="round"/>`;
+          s += `<line x1="${cx+3}" y1="${cy-3}" x2="${cx-3}" y2="${cy+3}" stroke="rgba(60,30,5,0.45)" stroke-width="1.5" stroke-linecap="round"/>`;
+        } else if (fret === 0) {
+          s += `<circle cx="${x}" cy="${MT - (small ? 6 : 8)}" r="${small ? 3 : 4}" fill="none" stroke="rgba(60,30,5,0.45)" stroke-width="1.5"/>`;
+        } else {
+          const relFret = fret - sf + 1;
+          if (relFret < 1 || relFret > NF) return;
+          const cy = MT + (relFret - 0.5) * FS;
+          s += `<circle cx="${x}" cy="${cy}" r="${r}" fill="#2a1505"/>`;
+          const finger = v.fingers?.[i] ?? 0;
+          if (finger && !small) {
+            s += `<text x="${x}" y="${cy + 3.5}" text-anchor="middle" font-size="7.5" fill="white" font-family="Quicksand,sans-serif" font-weight="600">${finger}</text>`;
+          }
+        }
+      });
+
+      if (v.notes && !small) {
+        v.notes.forEach((note, i) => {
+          if (note === 'x') return;
+          s += `<text x="${gx(i)}" y="${gy(NF) + 13}" text-anchor="middle" font-size="8" fill="rgba(60,30,5,0.6)" font-family="Quicksand,sans-serif">${note}</text>`;
+        });
+      }
+
+      s += '</svg>';
+      return s;
+    }
+
+    // ── Get all unique chord names across all sections ─────
+    function getAllUniqueChords() {
+      const text = document.getElementById('chord-input').value;
+      const sections = parseEditorInput(text);
+      const seen = new Set();
+      const result = [];
+      for (const sec of sections) {
+        for (const chord of extractSectionChords(sec.lines)) {
+          // Strip slash-bass notation for lookup but keep original for display
+          const base = chord.replace(/\/[A-G][b#]?$/, '');
+          if (!seen.has(base)) { seen.add(base); result.push(base); }
+        }
+      }
+      return result;
+    }
+
+    // ── Render the chord palette ───────────────────────────
+    function renderChordPalette() {
+      const palette = document.getElementById('chord-palette');
+      const chords  = getAllUniqueChords();
+
+      if (chords.length === 0) {
+        palette.innerHTML = '<div class="palette-empty">Add chords to see diagrams here…</div>';
+        return;
+      }
+
+      palette.innerHTML = chords.map(chordName => {
+        // Look up in static table first, then generate
+        const voicings = (typeof CHORD_VOICINGS !== 'undefined' && CHORD_VOICINGS[chordName])
+          || generateBarreVoicings(chordName)
+          || null;
+
+        if (!voicings || voicings.length === 0) {
+          return `<div class="palette-chord-group">
+            <div class="palette-chord-name">${escHtml(chordName)}</div>
+            <div class="palette-voicings"><span style="font-size:0.65rem;color:rgba(100,70,30,0.4);font-style:italic;">no diagram</span></div>
+          </div>`;
+        }
+
+        const cards = voicings.map(v =>
+          `<div class="palette-voicing-card">
+            ${renderChordDiagram(v, true)}
+            <div class="palette-voicing-type" title="${escHtml(v.type)}">${escHtml(v.type)}</div>
+          </div>`
+        ).join('');
+
+        return `<div class="palette-chord-group">
+          <div class="palette-chord-name">${escHtml(chordName)}</div>
+          <div class="palette-voicings">${cards}</div>
+        </div>`;
+      }).join('');
+    }
+
+    // ── Chord utilities (copied from songs.html) ───────────
+    const CHROMATIC = ['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
+    const NORMALIZE = {'Db':'C#','D#':'Eb','Gb':'F#','G#':'Ab','A#':'Bb'};
+
+    function normalizeRoot(r) { return NORMALIZE[r] || r; }
+
+    function transposeChord(chord, semitones) {
+      if (semitones === 0) return chord;
+      const m = chord.match(/^([A-G][b#]?)(.*)$/);
+      if (!m) return chord;
+      const root = normalizeRoot(m[1]);
+      const idx  = CHROMATIC.indexOf(root);
+      if (idx === -1) return chord;
+      return CHROMATIC[(idx + semitones + 12) % 12] + m[2];
+    }
+
+    function parseChordLine(line) {
+      const parts = line.split(/\[([A-G][b#]?[^\]]*)\]/);
+      const segments = [];
+      for (let i = 0; i < parts.length; i++) {
+        if (i % 2 === 0) {
+          segments.push({ chord: i === 0 ? '' : parts[i - 1], text: parts[i] });
+        }
+      }
+      return segments;
+    }
+
+    function hasChordMarkers(line) {
+      return /\[[A-G][b#]?[^\]]*\]/.test(line);
+    }
+
+    function escHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // renderChordLine — no transposition or chord-tip attrs in the editor
+    function renderChordLine(line) {
+      if (!hasChordMarkers(line)) {
+        return `<span class="chord-line"><span class="chord-segment"><span class="chord-name"></span><span class="chord-lyric">${escHtml(line)}</span></span></span>`;
+      }
+      const segments = parseChordLine(line);
+      const inner = segments.map(seg => {
+        const chord = seg.chord || '';
+
+        // Strip trailing whitespace — must live outside the flex span to render
+        const trailingSpaces = seg.text.match(/\s+$/)?.[0] ?? '';
+        const textNoTrailing = trailingSpaces ? seg.text.slice(0, -trailingSpaces.length) : seg.text;
+
+        // Gap chord: "[A] gettin'" — chord has leading spaces before the next word.
+        // Float the chord above an nbsp spacer so it sits visually in the gap,
+        // then render the word in its own chord-segment for correct alignment.
+        const leadingSpaces = (chord && textNoTrailing.match(/^\s+/)?.[0]) ?? '';
+        const textCore = leadingSpaces ? textNoTrailing.slice(leadingSpaces.length) : textNoTrailing;
+
+        if (chord && leadingSpaces && textCore) {
+          const gap = '\u00A0'.repeat(leadingSpaces.length);
+          return `<span class="chord-segment"><span class="chord-name">${escHtml(chord)}</span><span class="chord-lyric">${gap}</span></span><span class="chord-segment"><span class="chord-name"></span><span class="chord-lyric">${escHtml(textCore)}</span></span>${trailingSpaces}`;
+        }
+
+        // Normal case: chord sits above its lyric text.
+        // If there's no text at all (trailing chord), use nbsp for width.
+        const displayText = (chord && !textCore) ? '\u00A0\u00A0' : textCore;
+        return `<span class="chord-segment"><span class="chord-name">${escHtml(chord)}</span><span class="chord-lyric">${escHtml(displayText)}</span></span>${trailingSpaces}`;
+      }).join('');
+      return `<span class="chord-line">${inner}</span>`;
+    }
+
+    // ── Parse editor input into sections ──────────────────
+    function parseEditorInput(text) {
+      const blocks = text.split(/\n[ \t]*\n/).map(b => b.trim()).filter(Boolean);
+      if (blocks.length === 0) return [];
+      return blocks.map((block, i) => {
+        const lines = block.split('\n');
+        let label = `Section ${i + 1}`;
+        let start = 0;
+        // First line with no chord markers and reasonably short = section label
+        if (lines[0] && !hasChordMarkers(lines[0]) && lines[0].trim().length < 60) {
+          label = lines[0].trim();
+          start = 1;
+        }
+        return {
+          label,
+          lines: lines.slice(start).filter(l => l.trim())
+        };
+      });
+    }
+
+    // ── Scale tips state ───────────────────────────────────
+    let scaleTips = null;   // populated after "Generate Scale Tips"
+
+    // ── Build the CHORDS_DATA-compatible output object ─────
+    function buildOutput() {
+      const artist   = document.getElementById('meta-artist')?.value.trim()   || '';
+      const musicBy  = document.getElementById('meta-music-by')?.value.trim()  || '';
+      const lyricsBy = document.getElementById('meta-lyrics-by')?.value.trim() || '';
+      const album    = document.getElementById('meta-album')?.value.trim()    || '';
+      const year     = document.getElementById('meta-year')?.value.trim()     || '';
+
+      const out = {
+        id:       songId,
+        title:    songTitle,
+        key:      document.getElementById('key-select').value,
+        sections: parseEditorInput(document.getElementById('chord-input').value)
+      };
+
+      // Include metadata if present
+      if (artist)   out.artist    = artist;
+      if (musicBy)  out.music_by  = musicBy.split(',').map(s => s.trim()).filter(Boolean);
+      if (lyricsBy) out.lyrics_by = lyricsBy.split(',').map(s => s.trim()).filter(Boolean);
+      if (album || year) {
+        out.albums = [{}];
+        if (album) out.albums[0].title = album;
+        if (year)  out.albums[0].year  = parseInt(year, 10);
+      }
+      if (scaleTips) out.scales = scaleTips;
+
+      return out;
+    }
+
+    // ── Extract unique chords from section lines ───────────
+    function extractSectionChords(lines) {
+      const seen = new Set();
+      const result = [];
+      const re = /\[([A-G][b#]?[^\]]*)\]/g;
+      for (const line of lines) {
+        let m;
+        const r = new RegExp(re.source, 'g');
+        while ((m = r.exec(line)) !== null) {
+          if (!seen.has(m[1])) { seen.add(m[1]); result.push(m[1]); }
+        }
+      }
+      return result;
+    }
+
+    // ── Generate Scale Tips via Cloudflare Worker ──────────
+    async function generateScaleTips() {
+      if (WORKER_URL.includes('YOUR-WORKER')) {
+        alert('Paste your Cloudflare Worker URL into the WORKER_URL constant in this file first.');
+        return;
+      }
+
+      const sections = parseEditorInput(document.getElementById('chord-input').value);
+      if (sections.length === 0) {
+        alert('Add some chord data first.');
+        return;
+      }
+
+      const btn = document.getElementById('generate-btn');
+      const resultDiv = document.getElementById('scale-tips-result');
+
+      btn.disabled = true;
+      btn.textContent = 'Generating…';
+      resultDiv.style.display = 'none';
+
+      try {
+        // Deduplicate by label so repeated Chorus sections send one request
+        const seen = new Set();
+        const unique = sections.filter(s => {
+          if (seen.has(s.label)) return false;
+          seen.add(s.label);
+          return true;
+        });
+
+        const payload = {
+          songTitle,
+          key: document.getElementById('key-select').value,
+          sections: unique.map(sec => ({
+            label: sec.label,
+            chords: extractSectionChords(sec.lines)
+          })).filter(s => s.chords.length > 0)
+        };
+
+        const res = await fetch(WORKER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          throw new Error(errBody.error || `Worker returned ${res.status}`);
+        }
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+
+        scaleTips = data;
+        renderScaleTips(scaleTips);
+        updateInstructions(true);
+
+      } catch (err) {
+        resultDiv.innerHTML = `<div class="scale-tips-error">⚠ ${escHtml(err.message)}</div>`;
+        document.getElementById('tips-section').style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '✦ Generate Scale Tips';
+      }
+    }
+
+    // ── Render scale tips result panel ─────────────────────
+    function renderScaleTips(tips) {
+      const resultDiv  = document.getElementById('scale-tips-result');
+      const tipsSection = document.getElementById('tips-section');
+      const html = '<div class="scale-tips-result-label">Scale Tips</div>' +
+        Object.entries(tips).map(([label, scales]) =>
+          `<div class="scale-tip-section">
+            <div class="scale-tip-section-label">${escHtml(label)}</div>
+            ${scales.map(s =>
+              `<div class="scale-tip-entry">
+                <span class="scale-tip-name">${escHtml(s.name)}</span>
+                <span class="scale-tip-notes">${escHtml(s.notes)}</span>
+                <span class="scale-tip-note-text">${escHtml(s.note)}</span>
+              </div>`
+            ).join('')}
+          </div>`
+        ).join('');
+      resultDiv.innerHTML = html;
+      resultDiv.style.display = '';   // clear the 'none' set during loading
+      tipsSection.style.display = 'block';
+    }
+
+    // ── Update instructions text ────────────────────────────
+    function updateInstructions(hasScales) {
+      const el = document.getElementById('output-instructions');
+      if (hasScales) {
+        el.innerHTML = `Copy/Download includes chord data + scale tips. Add to <code>chords-data.js</code>: <code>CHORDS_DATA["<span id="song-id-hint">${escHtml(songId)}</span>"] = { … };</code> then add the <code>scales</code> entries to the <code>SCALES</code> object in <code>songs.html</code> as <code>"${escHtml(songId)}:Section Label"</code> keys.`;
+      }
+    }
+
+    // ── Live preview ───────────────────────────────────────
+    let previewTimer = null;
+
+    function schedulePreview() {
+      clearTimeout(previewTimer);
+      previewTimer = setTimeout(renderPreview, 280);
+    }
+
+    function renderPreview() {
+      const panel = document.getElementById('preview-panel');
+      const text  = document.getElementById('chord-input').value.trim();
+
+      if (!text) {
+        panel.innerHTML = '<div class="preview-empty">Start typing to see a live preview…</div>';
+        return;
+      }
+
+      const sections = parseEditorInput(text);
+      if (sections.length === 0) {
+        panel.innerHTML = '<div class="preview-empty">Start typing to see a live preview…</div>';
+        return;
+      }
+
+      const hasAnyChords = sections.some(s => s.lines.some(l => hasChordMarkers(l)));
+      const bodyClass    = `lyrics-body${hasAnyChords ? ' chords-on' : ''}`;
+
+      panel.innerHTML = `<div class="${bodyClass}">` +
+        sections.map(sec => {
+          const linesHtml = sec.lines.map(line => renderChordLine(line)).join('');
+          return `<div class="lyrics-section">
+            <div class="section-label">${escHtml(sec.label)}</div>
+            <div>${linesHtml}</div>
+          </div>`;
+        }).join('') +
+        '</div>';
+
+      renderChordPalette();
+    }
+
+    // ── Copy JSON to clipboard ─────────────────────────────
+    function copyJSON() {
+      const json = JSON.stringify(buildOutput(), null, 2);
+      navigator.clipboard.writeText(json).then(() => {
+        const btn = document.getElementById('copy-btn');
+        btn.textContent = 'Copied!';
+        btn.classList.add('success');
+        setTimeout(() => {
+          btn.textContent = 'Copy JSON';
+          btn.classList.remove('success');
+        }, 2000);
+      }).catch(() => {
+        // Fallback for browsers that block clipboard without user gesture
+        prompt('Copy the JSON below:', json);
+      });
+    }
+
+    // ── Publish to App (save to Cloudflare KV) ────────────
+    async function publishToApp() {
+      const sections = parseEditorInput(document.getElementById('chord-input').value);
+      if (sections.length === 0) {
+        alert('Add some chord data first.');
+        return;
+      }
+
+      // Artist is required before publishing
+      const artistEl = document.getElementById('meta-artist');
+      if (!artistEl.value.trim()) {
+        artistEl.classList.add('field-required-empty');
+        const note = document.getElementById('meta-artist-note');
+        if (note) note.classList.add('visible');
+        artistEl.focus();
+        // Scroll credits panel into view if needed
+        artistEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => {
+          artistEl.classList.remove('field-required-empty');
+          if (note) note.classList.remove('visible');
+        }, 3000);
+        return;
+      }
+
+      // Key is required before publishing
+      const ks = document.getElementById('key-select');
+      if (!ks.value) {
+        // Shake the dropdown and show a hint
+        ks.classList.remove('key-required');
+        void ks.offsetWidth; // reflow to restart animation
+        ks.classList.add('key-required');
+        setTimeout(() => ks.classList.remove('key-required'), 700);
+        const noteEl = document.getElementById('key-suggestion-note');
+        noteEl.textContent = 'Please select a key before publishing. Hit ✦ Suggest if you\'re not sure.';
+        noteEl.className   = 'key-suggestion-note error';
+        ks.focus();
+        return;
+      }
+
+      const btn = document.getElementById('publish-btn');
+      btn.disabled = true;
+      btn.textContent = 'Publishing…';
+
+      try {
+        const data = buildOutput();
+        const res = await fetch(`${WORKER_URL}/song`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        if (!res.ok || result.error) throw new Error(result.error || `Server error ${res.status}`);
+
+        btn.textContent = '✓ Published!';
+        btn.classList.add('success');
+        setTimeout(() => {
+          btn.textContent = '▲ Publish to App';
+          btn.classList.remove('success');
+          btn.disabled = false;
+        }, 3000);
+      } catch (err) {
+        alert(`Publish failed: ${err.message}`);
+        btn.textContent = '▲ Publish to App';
+        btn.disabled = false;
+      }
+    }
+
+    // ── Download JSON as file ──────────────────────────────
+    function downloadJSON() {
+      const json = JSON.stringify(buildOutput(), null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const a    = document.createElement('a');
+      a.href     = URL.createObjectURL(blob);
+      a.download = songId + '.json';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    // ── Init ───────────────────────────────────────────────
+
+    document.getElementById('key-select').addEventListener('change', () => {
+      // Clear any "key required" error when user picks a key manually
+      const noteEl = document.getElementById('key-suggestion-note');
+      if (noteEl.classList.contains('error') && document.getElementById('key-select').value) {
+        noteEl.textContent = '';
+        noteEl.className   = 'key-suggestion-note';
+      }
+      renderPreview();
+    });
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+# Internal project notes — keep off GitHub
+NOTES.md
+CONTEXT.md
+
+# Python scripts / raw data — not needed for the site
+*.py
+grateful_dead_database.json
+*.rtf
+
+# Test files
+test-ripple.html
+
+# Claude Code settings
+.claude/
+
+# macOS
+.DS_Store

@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grateful Dead Name Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Righteous&family=Quicksand:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background-color: #2a1a08;
+      background-image: url('GD_background image.png');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      font-family: 'Quicksand', sans-serif;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Dark vignette overlay so the card stays readable */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse at center, rgba(10, 5, 0, 0.35) 0%, rgba(10, 5, 0, 0.72) 100%);
+      pointer-events: none;
+    }
+
+    .card {
+      position: relative;
+      z-index: 1;
+      background: radial-gradient(ellipse at center, rgba(40, 20, 5, 0.6) 0%, rgba(40, 20, 5, 0.3) 55%, transparent 85%);
+      border: none;
+      border-radius: 24px;
+      padding: 52px 56px;
+      max-width: 480px;
+      width: 90%;
+      text-align: center;
+    }
+
+    /* Skull icon */
+    .skull {
+      font-size: 56px;
+      margin-bottom: 8px;
+      filter: drop-shadow(0 0 10px rgba(220, 160, 60, 0.8));
+      animation: pulse 4s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { filter: drop-shadow(0 0 10px rgba(220, 160, 60, 0.8)); }
+      50%       { filter: drop-shadow(0 0 22px rgba(255, 200, 80, 1)); }
+    }
+
+    h1 {
+      font-family: 'Cinzel Decorative', cursive;
+      font-size: 2rem;
+      background: linear-gradient(135deg, #f5d07a, #e07b30, #f5d07a, #c8a84b);
+      background-size: 300% 300%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 6s ease infinite;
+      margin-bottom: 6px;
+      text-shadow: none;
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.7));
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: rgba(240, 210, 150, 0.85);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 40px;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+    }
+
+    /* Gender selector */
+    .gender-selector {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 32px;
+    }
+
+    .gender-btn {
+      flex: 1;
+      padding: 12px 0;
+      border-radius: 12px;
+      border: 1.5px solid rgba(210, 170, 100, 0.3);
+      background: transparent;
+      color: rgba(220, 185, 120, 0.65);
+      font-family: 'Quicksand', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      letter-spacing: 0.05em;
+    }
+
+    .gender-btn:hover {
+      border-color: rgba(210, 170, 100, 0.7);
+      color: #f5dfa0;
+      background: rgba(180, 100, 20, 0.18);
+    }
+
+    .gender-btn.active {
+      background: linear-gradient(135deg, rgba(160, 90, 20, 0.55), rgba(200, 130, 30, 0.4));
+      border-color: rgba(220, 175, 80, 0.7);
+      color: #fde8a0;
+      box-shadow: 0 0 18px rgba(200, 140, 30, 0.4);
+    }
+
+    /* Generate button */
+    .generate-btn {
+      width: 100%;
+      padding: 16px;
+      border-radius: 14px;
+      border: none;
+      background: linear-gradient(135deg, #92400e, #b45309, #92400e);
+      background-size: 200% 200%;
+      color: #fef3c7;
+      font-family: 'Righteous', cursive;
+      font-size: 1.1rem;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 24px rgba(146, 64, 14, 0.55);
+      animation: btnShimmer 5s ease infinite;
+    }
+
+    @keyframes btnShimmer {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .generate-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(180, 83, 9, 0.7);
+    }
+
+    .generate-btn:active {
+      transform: translateY(0);
+    }
+
+    .generate-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Result display */
+    .result {
+      margin-top: 36px;
+      min-height: 90px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .result-label {
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(240, 210, 150, 0.85);
+      margin-bottom: 8px;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+    }
+
+    .result-name {
+      font-family: 'Righteous', cursive;
+      font-size: 2.4rem;
+      background: linear-gradient(135deg, #fde68a, #fb923c, #fbbf24);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      line-height: 1.2;
+    }
+
+    .result-name.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .result-tagline {
+      margin-top: 10px;
+      font-size: 0.8rem;
+      color: rgba(240, 210, 150, 0.85);
+      font-style: italic;
+      opacity: 0;
+      transition: opacity 0.5s ease 0.2s;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+    }
+
+    .result-tagline.visible {
+      opacity: 1;
+    }
+
+    /* Divider */
+    .divider {
+      width: 60px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(210, 170, 100, 0.4), transparent);
+      margin: 36px auto 0;
+    }
+
+    .footer {
+      margin-top: 14px;
+      font-size: 0.7rem;
+      color: rgba(220, 185, 120, 0.28);
+      letter-spacing: 0.1em;
+    }
+  </style>
+  <script src="auth.js"></script>
+</head>
+<body>
+  <div class="card">
+    <h1>Dead Name Generator</h1>
+    <p class="subtitle">What's your Deadhead name?</p>
+
+    <div class="gender-selector">
+      <button class="gender-btn active" id="btn-male" onclick="selectGender('male')">Male</button>
+      <button class="gender-btn" id="btn-female" onclick="selectGender('female')">Female</button>
+    </div>
+
+    <button class="generate-btn" onclick="generateName()">Generate Name</button>
+
+    <div class="result">
+      <div class="result-label" id="result-label" style="display:none;">Your Deadhead name is</div>
+      <div class="result-name" id="result-name"></div>
+      <div class="result-tagline" id="result-tagline"></div>
+    </div>
+
+    <div class="divider"></div>
+    <a href="songs.html" style="display:block; margin-top:20px; font-family:'Quicksand',sans-serif; font-size:0.82rem; color:rgba(220,185,120,0.55); letter-spacing:0.1em; text-decoration:none; transition: color 0.2s;" onmouseover="this.style.color='rgba(240,210,150,0.9)'" onmouseout="this.style.color='rgba(220,185,120,0.55)'">Song Lyrics →</a>
+    <p class="footer" style="margin-top:8px;">Truckin' since 1965 &nbsp;·&nbsp; Keep on Grateful</p>
+  </div>
+
+  <script>
+    const names = {
+      male: {
+        first: [
+          "Jerry", "Bobby", "Phil", "Mickey", "Billy", "Keith", "Brent", "Pigpen",
+          "Casey", "Franklin", "Jack", "Samson", "Cumberland", "Terrapin", "Rio",
+          "Dupree", "Ripple", "Rider", "Ramble", "Stranger", "Preacher", "Lazarus",
+          "Shakedown", "Scarlet", "Brokedown", "Thunder", "Zion", "Memphis",
+          "Loser", "Truckin", "Wharf", "Althea", "Frankie", "Estimated"
+        ],
+        last: [
+          "Garcia", "Weir", "Lesh", "Hart", "Kreutzmann", "McKernan", "Godchaux",
+          "Mydland", "Welnick", "Terrapin", "Ripple", "Sunshine", "Daybreak",
+          "Midnight", "Cumberland", "Shakedown", "Bearsville", "Peacock",
+          "Mountain", "Riverside", "Brokedown", "Sugarman", "Deadhead",
+          "Rosewood", "Darkstar", "Moonrise", "Drums", "Space", "Reckoning",
+          "Franklin", "Scarlet", "Ragtime", "Scarecrow", "Johnstown"
+        ]
+      },
+      female: {
+        first: [
+          "Donna", "Cassidy", "Althea", "Sugaree", "Lorelei", "Scarlet", "Rosemary",
+          "Stella", "Lucinda", "Tennessee", "Bertha", "Birdie", "Delilah",
+          "Sadie", "Esther", "Ramona", "Ripple", "Shakedown", "Brokedown",
+          "China", "Rider", "Magnolia", "Sunshine", "Daybreak", "Celeste",
+          "Wharf", "Moonflower", "Terrapin", "Perdita", "Cassandra"
+        ],
+        last: [
+          "Garcia", "Weir", "Lesh", "Hart", "Godchaux", "Sunshine", "Daybreak",
+          "Terrapin", "Ripple", "Cumberland", "Bearsville", "Peacock",
+          "Mountain", "Riverside", "Sugaree", "Deadhead", "Rosewood",
+          "Darkstar", "Moonrise", "Reckoning", "Franklin", "Brokedown",
+          "Scarlett", "Shakedown", "Johnstown", "Ragtime", "Rosemary",
+          "Stardust", "Wildwood", "Birdsong"
+        ]
+      }
+    };
+
+    const taglines = [
+      "\"What a long, strange trip it's been.\"",
+      "\"Truckin' through the cosmic void.\"",
+      "\"The music never stopped.\"",
+      "\"Once in a while you get shown the light.\"",
+      "\"Keep on truckin'.\"",
+      "\"Ripple in still water.\"",
+      "\"Touch of grey — and that's alright.\"",
+      "\"Friend of the Devil, friend of mine.\"",
+      "\"Goin' where the wind don't blow so strange.\"",
+      "\"Built to last, born to groove.\""
+    ];
+
+    let selectedGender = 'male';
+
+    function selectGender(gender) {
+      selectedGender = gender;
+      document.getElementById('btn-male').classList.toggle('active', gender === 'male');
+      document.getElementById('btn-female').classList.toggle('active', gender === 'female');
+
+      // Clear result on gender switch
+      const nameEl = document.getElementById('result-name');
+      const tagEl = document.getElementById('result-tagline');
+      const labelEl = document.getElementById('result-label');
+      nameEl.classList.remove('visible');
+      tagEl.classList.remove('visible');
+      setTimeout(() => {
+        nameEl.textContent = '';
+        tagEl.textContent = '';
+        labelEl.style.display = 'none';
+      }, 300);
+    }
+
+    function pick(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function generateName() {
+      const pool = names[selectedGender];
+      const first = pick(pool.first);
+      const last = pick(pool.last);
+      const tagline = pick(taglines);
+
+      const nameEl = document.getElementById('result-name');
+      const tagEl = document.getElementById('result-tagline');
+      const labelEl = document.getElementById('result-label');
+
+      // Animate out then in
+      nameEl.classList.remove('visible');
+      tagEl.classList.remove('visible');
+
+      setTimeout(() => {
+        labelEl.style.display = 'block';
+        nameEl.textContent = `${first} ${last}`;
+        tagEl.textContent = tagline;
+        requestAnimationFrame(() => {
+          nameEl.classList.add('visible');
+          tagEl.classList.add('visible');
+        });
+      }, 250);
+    }
+  </script>
+</body>
+</html>
