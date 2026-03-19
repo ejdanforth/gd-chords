@@ -150,18 +150,63 @@
       color: rgba(160, 40, 40, 0.65);
     }
 
-    /* ── Format hint ── */
+    /* ── Format hint (collapsible instructions panel) ── */
     .format-hint {
-      width: 190px;
       flex-shrink: 0;
+      position: relative;
+      overflow: hidden;
+      width: 26px;
+      transition: width 0.3s ease;
+      border-right: 2px solid rgba(100, 70, 30, 0.15);
+      cursor: pointer;
+    }
+    .format-hint.expanded {
+      width: 190px;
       padding: 0 16px 0 0;
+      cursor: default;
+    }
+
+    /* Vertical "INSTRUCTIONS" tab shown when collapsed */
+    .format-hint-tab {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 26px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 8px;
+      pointer-events: none;
+    }
+    .format-hint-tab span {
+      writing-mode: vertical-lr;
+      transform: rotate(180deg);
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(100, 65, 20, 0.5);
+      white-space: nowrap;
+    }
+    .format-hint.expanded .format-hint-tab { display: none; }
+
+    /* Content fades in when expanded */
+    .format-hint-content {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease;
       font-size: 0.84rem;
       color: rgba(80, 50, 15, 0.65);
       line-height: 1.7;
-      border-right: 2px solid rgba(100, 70, 30, 0.15);
+      width: 174px; /* 190px - 16px padding */
+    }
+    .format-hint.expanded .format-hint-content {
+      opacity: 1;
+      pointer-events: auto;
+      transition: opacity 0.2s ease 0.15s;
     }
 
-    .format-hint strong {
+    .format-hint-content strong {
       display: block;
       color: rgba(80, 50, 15, 0.85);
       font-weight: 700;
@@ -169,13 +214,31 @@
       letter-spacing: 0.04em;
       font-size: 0.9rem;
     }
-    .format-hint code {
+    .format-hint-content code {
       font-family: 'Courier New', monospace;
       background: rgba(120, 90, 40, 0.12);
       padding: 1px 4px;
       border-radius: 3px;
       font-size: 0.76rem;
     }
+
+    /* Collapse toggle button at bottom of expanded panel */
+    .format-hint-toggle {
+      display: none;
+      margin-top: 14px;
+      background: none;
+      border: none;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(100, 65, 20, 0.4);
+      cursor: pointer;
+      padding: 0;
+      font-family: 'Quicksand', sans-serif;
+    }
+    .format-hint-toggle:hover { color: rgba(100, 65, 20, 0.75); }
+    .format-hint.expanded .format-hint-toggle { display: block; }
 
     /* ── Inline chord example inside format hint ── */
     .format-example {
@@ -232,12 +295,12 @@
       min-width: 0;
     }
 
-    /* ── Song info column (col 4) ── */
+    /* ── Song info column (below output-row in left panel) ── */
     .song-info-column {
-      width: 210px;
-      flex-shrink: 0;
+      width: 100%;
       display: flex;
       flex-direction: column;
+      margin-top: 20px;
     }
 
     /* ── Credits / metadata panel ── */
@@ -687,6 +750,85 @@
       padding-top: 20px;
       border-top: 1px solid rgba(100, 70, 30, 0.12);
     }
+
+    /* ── Preview column header (label + publish button on same row) ── */
+    .preview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .preview-header .pane-label {
+      margin-bottom: 0;
+    }
+
+    /* ── Publish confirmation modal ── */
+    .publish-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: rgba(20, 10, 2, 0.55);
+      align-items: center;
+      justify-content: center;
+    }
+    .publish-modal-overlay.visible {
+      display: flex;
+    }
+    .publish-modal-box {
+      background: #f5efd8;
+      border: 1px solid rgba(100, 70, 30, 0.3);
+      border-radius: 14px;
+      padding: 32px 36px;
+      max-width: 420px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+    }
+    .publish-modal-message {
+      font-size: 0.92rem;
+      color: #2a1505;
+      line-height: 1.65;
+      margin-bottom: 24px;
+    }
+    .publish-modal-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+    .publish-modal-yes {
+      background: rgba(30, 100, 60, 0.14);
+      border: 1px solid rgba(30, 100, 60, 0.45);
+      color: rgba(20, 75, 45, 0.9);
+      border-radius: 20px;
+      padding: 8px 28px;
+      font-family: 'Quicksand', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .publish-modal-yes:hover {
+      background: rgba(30, 100, 60, 0.25);
+      border-color: rgba(30, 100, 60, 0.7);
+    }
+    .publish-modal-cancel {
+      background: rgba(200, 180, 140, 0.35);
+      border: 1px solid rgba(100, 70, 30, 0.35);
+      color: rgba(60, 35, 10, 0.75);
+      border-radius: 20px;
+      padding: 8px 28px;
+      font-family: 'Quicksand', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .publish-modal-cancel:hover {
+      background: rgba(160, 120, 60, 0.45);
+      border-color: rgba(100, 70, 30, 0.65);
+      color: #3a1a00;
+    }
   </style>
   <script src="auth.js"></script>
 </head>
@@ -718,15 +860,19 @@
       <!-- LEFT PANEL: sticks in viewport while right panel scrolls -->
       <div class="editor-left">
 
-        <!-- Format hint / instructions -->
-        <div class="format-hint">
-          <strong>Instructions</strong>
-          Copy/paste or type lyrics (and chords if you have them) in the Input box. Separate sections with a blank line. The first line of each section becomes the section label (Chorus 1, Verse 2, etc.).<br><br>
-          Place chords in [ ] brackets just before the syllable they fall on:
-          <div class="format-example">
-            <code>[E]With the mo[D]rning sun…</code>
-            <div class="format-example-eq">= </div>
-            <div class="format-chord-preview lyrics-body chords-on"><span class="chord-line"><span class="chord-segment"><span class="chord-name">E</span><span class="chord-lyric">With the mo</span></span><span class="chord-segment"><span class="chord-name">D</span><span class="chord-lyric">rning sun…</span></span></span></div>
+        <!-- Format hint / instructions (collapsed by default) -->
+        <div class="format-hint" id="format-hint" onclick="expandFormatHint(event)">
+          <div class="format-hint-tab"><span>Instructions</span></div>
+          <div class="format-hint-content">
+            <strong>Instructions</strong>
+            Copy/paste or type lyrics (and chords if you have them) in the Input box. Separate sections with a blank line. The first line of each section becomes the section label (Chorus 1, Verse 2, etc.).<br><br>
+            Place chords in [ ] brackets just before the syllable they fall on:
+            <div class="format-example">
+              <code>[E]With the mo[D]rning sun…</code>
+              <div class="format-example-eq">= </div>
+              <div class="format-chord-preview lyrics-body chords-on"><span class="chord-line"><span class="chord-segment"><span class="chord-name">E</span><span class="chord-lyric">With the mo</span></span><span class="chord-segment"><span class="chord-name">D</span><span class="chord-lyric">rning sun…</span></span></span></div>
+            </div>
+            <button class="format-hint-toggle" onclick="collapseFormatHint(event)">← Hide</button>
           </div>
         </div>
 
@@ -741,14 +887,48 @@
             spellcheck="false"
           ></textarea>
           <div class="output-row">
-            <p class="output-hint">Pick a key and hit Generate Scale Tips. When you're happy with the results, hit Publish to App to save!</p>
+            <p class="output-hint">Pick a key and hit Generate Scale Tips. When you're happy with the results, hit Publish to App (top right of preview) to save!</p>
             <div class="output-buttons">
               <button class="output-btn generate-btn" id="generate-btn" onclick="generateScaleTips()">✦ Generate Scale Tips</button>
-              <button class="output-btn publish-btn" id="publish-btn" onclick="publishToApp()">▲ Publish to App</button>
             </div>
           </div>
 
-          <!-- Chord Library — lives below input, right edge aligns with input -->
+          <!-- Song Info / Credits — below Generate Scale Tips, above Chord Library -->
+          <div class="song-info-column">
+            <div class="pane-label">Song Info</div>
+            <div class="credits-panel" id="credits-panel">
+
+              <div class="credits-field">
+                <label class="credits-field-label">Artist *</label>
+                <input class="credits-field-input" id="meta-artist" type="text" placeholder="e.g. The Grateful Dead" />
+                <span class="credits-required-note" id="meta-artist-note">Artist is required to publish</span>
+              </div>
+
+              <div class="credits-field secondary">
+                <label class="credits-field-label">Music by</label>
+                <input class="credits-field-input secondary" id="meta-music-by" type="text" placeholder="e.g. Jerry Garcia" />
+              </div>
+
+              <div class="credits-field secondary">
+                <label class="credits-field-label">Lyrics by</label>
+                <input class="credits-field-input secondary" id="meta-lyrics-by" type="text" placeholder="e.g. Robert Hunter" />
+              </div>
+
+              <div class="credits-field secondary">
+                <label class="credits-field-label">Album</label>
+                <div class="album-year-row">
+                  <input class="credits-field-input secondary" id="meta-album" type="text" placeholder="Album title" style="width:7ch; min-width:0; flex-shrink:1;" oninput="sizeAlbumInput(this)" />
+                  <span class="album-year-paren">(</span>
+                  <input class="credits-field-input secondary credits-year-input" id="meta-year" type="text" placeholder="YYYY" maxlength="4"
+                    oninput="this.value=this.value.replace(/\D/g,'').slice(0,4)" />
+                  <span class="album-year-paren">)</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Chord Library — lives below Song Info -->
           <div class="chord-library-section" id="chord-library-section">
             <div class="pane-label">Chord Library</div>
             <div class="palette-section" id="palette-section">
@@ -770,44 +950,12 @@
 
         <!-- Preview -->
         <div class="preview-column">
-          <div class="pane-label">Preview</div>
+          <div class="preview-header">
+            <div class="pane-label">Preview</div>
+            <button class="output-btn publish-btn" id="publish-btn" onclick="showPublishConfirm()">▲ Publish to App</button>
+          </div>
           <div class="preview-panel" id="preview-panel">
             <div class="preview-empty">Start typing to see a live preview…</div>
-          </div>
-        </div>
-
-        <!-- Song Info / Credits -->
-        <div class="song-info-column">
-          <div class="pane-label">Song Info</div>
-          <div class="credits-panel" id="credits-panel">
-
-            <div class="credits-field">
-              <label class="credits-field-label">Artist *</label>
-              <input class="credits-field-input" id="meta-artist" type="text" placeholder="e.g. The Grateful Dead" />
-              <span class="credits-required-note" id="meta-artist-note">Artist is required to publish</span>
-            </div>
-
-            <div class="credits-field secondary">
-              <label class="credits-field-label">Music by</label>
-              <input class="credits-field-input secondary" id="meta-music-by" type="text" placeholder="e.g. Jerry Garcia" />
-            </div>
-
-            <div class="credits-field secondary">
-              <label class="credits-field-label">Lyrics by</label>
-              <input class="credits-field-input secondary" id="meta-lyrics-by" type="text" placeholder="e.g. Robert Hunter" />
-            </div>
-
-            <div class="credits-field secondary">
-              <label class="credits-field-label">Album</label>
-              <div class="album-year-row">
-                <input class="credits-field-input secondary" id="meta-album" type="text" placeholder="Album title" style="width:7ch; min-width:0; flex-shrink:1;" oninput="sizeAlbumInput(this)" />
-                <span class="album-year-paren">(</span>
-                <input class="credits-field-input secondary credits-year-input" id="meta-year" type="text" placeholder="YYYY" maxlength="4"
-                  oninput="this.value=this.value.replace(/\D/g,'').slice(0,4)" />
-                <span class="album-year-paren">)</span>
-              </div>
-            </div>
-
           </div>
         </div>
 
@@ -815,6 +963,17 @@
 
     </div><!-- /.editor-layout -->
 
+  </div>
+
+  <!-- Publish confirmation modal -->
+  <div class="publish-modal-overlay" id="publish-modal">
+    <div class="publish-modal-box">
+      <p class="publish-modal-message">Are you sure you're ready to save your edits? Once published, you cannot revert to an earlier version.</p>
+      <div class="publish-modal-buttons">
+        <button class="publish-modal-yes" onclick="confirmPublish()">Yes</button>
+        <button class="publish-modal-cancel" onclick="closePublishModal()">Cancel</button>
+      </div>
+    </div>
   </div>
 
   <script src="chords-data.js"></script>
@@ -836,6 +995,28 @@
     const paramYear     = params.get('year')     || '';
 
     document.getElementById('editor-title').textContent = `Chord Editor — ${songTitle}`;
+
+    // ── Format hint toggle ────────────────────────────────
+    function expandFormatHint(e) {
+      const el = document.getElementById('format-hint');
+      if (!el.classList.contains('expanded')) el.classList.add('expanded');
+    }
+    function collapseFormatHint(e) {
+      e.stopPropagation();
+      document.getElementById('format-hint').classList.remove('expanded');
+    }
+
+    // ── Publish confirmation modal ────────────────────────
+    function showPublishConfirm() {
+      document.getElementById('publish-modal').classList.add('visible');
+    }
+    function closePublishModal() {
+      document.getElementById('publish-modal').classList.remove('visible');
+    }
+    function confirmPublish() {
+      closePublishModal();
+      publishToApp();
+    }
 
     // ── Auto-size album input to its text content ─────────
     function sizeAlbumInput(el) {
