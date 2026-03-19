@@ -180,7 +180,7 @@
       pointer-events: none;
     }
     .format-hint-arrow-icon {
-      font-size: 0.9rem;
+      font-size: 1.4rem;
       font-weight: 700;
       color: rgba(100, 65, 20, 0.5);
       line-height: 1;
@@ -351,10 +351,98 @@
 
     /* ── Song info column (below output-row in left panel) ── */
     .song-info-column {
-      width: 100%;
+      max-width: 300px;
       display: flex;
       flex-direction: column;
       margin-top: 20px;
+    }
+
+    /* Song Info header row: label + edit link */
+    .song-info-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .song-info-header .pane-label { margin-bottom: 0; }
+    .song-info-edit-btn {
+      background: none;
+      border: none;
+      font-family: 'Quicksand', sans-serif;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(100, 65, 20, 0.45);
+      cursor: pointer;
+      padding: 0;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .song-info-edit-btn:hover { color: rgba(100, 65, 20, 0.85); }
+
+    /* Song Info edit modal */
+    .song-info-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: rgba(20, 10, 2, 0.55);
+      align-items: center;
+      justify-content: center;
+    }
+    .song-info-modal-overlay.visible { display: flex; }
+    .song-info-modal-box {
+      background: #f5efd8;
+      border: 1px solid rgba(100, 70, 30, 0.3);
+      border-radius: 14px;
+      padding: 32px 36px;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+    }
+    .song-info-modal-title {
+      font-family: 'Cinzel Decorative', cursive;
+      font-size: 0.95rem;
+      color: #5a2800;
+      margin-bottom: 24px;
+    }
+    .song-info-modal-fields {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .song-info-modal-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .song-info-modal-field label {
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(100, 65, 20, 0.5);
+    }
+    .song-info-modal-field input {
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid rgba(100, 70, 30, 0.3);
+      color: #2a1505;
+      font-family: 'Quicksand', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 600;
+      padding: 4px 0 6px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .song-info-modal-field input:focus {
+      border-bottom-color: rgba(100, 70, 30, 0.7);
+    }
+    .song-info-modal-field input::placeholder {
+      color: rgba(100, 70, 30, 0.28);
+      font-weight: 400;
     }
 
     /* ── Credits / metadata panel ── */
@@ -954,26 +1042,16 @@
 
           <!-- Song Info / Credits — below Generate Scale Tips, above Chord Library -->
           <div class="song-info-column">
-            <div class="pane-label">Song Info</div>
+            <div class="song-info-header">
+              <div class="pane-label">Song Info</div>
+              <button class="song-info-edit-btn" onclick="openSongInfoEdit()">Edit</button>
+            </div>
             <div class="credits-panel" id="credits-panel">
 
-              <!-- Artist (left) + Album (right) share top row + underline -->
-              <div class="credits-top-row">
-                <div class="credits-field">
-                  <label class="credits-field-label">Artist *</label>
-                  <input class="credits-field-input" id="meta-artist" type="text" placeholder="e.g. The Grateful Dead" />
-                  <span class="credits-required-note" id="meta-artist-note">Artist is required to publish</span>
-                </div>
-                <div class="credits-album-right">
-                  <label class="credits-field-label">Album</label>
-                  <div class="album-year-row">
-                    <input class="credits-field-input secondary" id="meta-album" type="text" placeholder="Album title" style="width:7ch; min-width:0; flex-shrink:1;" oninput="sizeAlbumInput(this)" />
-                    <span class="album-year-paren">(</span>
-                    <input class="credits-field-input secondary credits-year-input" id="meta-year" type="text" placeholder="YYYY" maxlength="4"
-                      oninput="this.value=this.value.replace(/\D/g,'').slice(0,4)" />
-                    <span class="album-year-paren">)</span>
-                  </div>
-                </div>
+              <div class="credits-field">
+                <label class="credits-field-label">Artist *</label>
+                <input class="credits-field-input" id="meta-artist" type="text" placeholder="e.g. The Grateful Dead" />
+                <span class="credits-required-note" id="meta-artist-note">Artist is required to publish</span>
               </div>
 
               <div class="credits-field secondary">
@@ -984,6 +1062,17 @@
               <div class="credits-field secondary">
                 <label class="credits-field-label">Lyrics by</label>
                 <input class="credits-field-input secondary" id="meta-lyrics-by" type="text" placeholder="e.g. Robert Hunter" />
+              </div>
+
+              <div class="credits-field secondary">
+                <label class="credits-field-label">Album</label>
+                <div class="album-year-row">
+                  <input class="credits-field-input secondary" id="meta-album" type="text" placeholder="Album title" style="width:7ch; min-width:0; flex-shrink:1;" oninput="sizeAlbumInput(this)" />
+                  <span class="album-year-paren">(</span>
+                  <input class="credits-field-input secondary credits-year-input" id="meta-year" type="text" placeholder="YYYY" maxlength="4"
+                    oninput="this.value=this.value.replace(/\D/g,'').slice(0,4)" />
+                  <span class="album-year-paren">)</span>
+                </div>
               </div>
 
             </div>
@@ -1024,6 +1113,40 @@
 
     </div><!-- /.editor-layout -->
 
+  </div>
+
+  <!-- Song Info edit modal -->
+  <div class="song-info-modal-overlay" id="song-info-modal">
+    <div class="song-info-modal-box">
+      <div class="song-info-modal-title">Edit Song Info</div>
+      <div class="song-info-modal-fields">
+        <div class="song-info-modal-field">
+          <label>Artist *</label>
+          <input type="text" id="edit-artist" placeholder="e.g. The Grateful Dead" />
+        </div>
+        <div class="song-info-modal-field">
+          <label>Music By</label>
+          <input type="text" id="edit-music-by" placeholder="e.g. Jerry Garcia" />
+        </div>
+        <div class="song-info-modal-field">
+          <label>Lyrics By</label>
+          <input type="text" id="edit-lyrics-by" placeholder="e.g. Robert Hunter" />
+        </div>
+        <div class="song-info-modal-field">
+          <label>Album</label>
+          <input type="text" id="edit-album" placeholder="Album title" />
+        </div>
+        <div class="song-info-modal-field">
+          <label>Year</label>
+          <input type="text" id="edit-year" placeholder="YYYY" maxlength="4"
+            oninput="this.value=this.value.replace(/\D/g,'').slice(0,4)" />
+        </div>
+      </div>
+      <div class="publish-modal-buttons">
+        <button class="publish-modal-yes" onclick="saveSongInfoEdit()">Save</button>
+        <button class="publish-modal-cancel" onclick="closeSongInfoEdit()">Cancel</button>
+      </div>
+    </div>
   </div>
 
   <!-- Publish confirmation modal -->
@@ -1077,6 +1200,30 @@
     function confirmPublish() {
       closePublishModal();
       publishToApp();
+    }
+
+    // ── Song Info edit modal ──────────────────────────────
+    function openSongInfoEdit() {
+      document.getElementById('edit-artist').value   = document.getElementById('meta-artist').value;
+      document.getElementById('edit-music-by').value = document.getElementById('meta-music-by').value;
+      document.getElementById('edit-lyrics-by').value= document.getElementById('meta-lyrics-by').value;
+      document.getElementById('edit-album').value    = document.getElementById('meta-album').value;
+      document.getElementById('edit-year').value     = document.getElementById('meta-year').value;
+      document.getElementById('song-info-modal').classList.add('visible');
+      document.getElementById('edit-artist').focus();
+    }
+    function closeSongInfoEdit() {
+      document.getElementById('song-info-modal').classList.remove('visible');
+    }
+    function saveSongInfoEdit() {
+      document.getElementById('meta-artist').value   = document.getElementById('edit-artist').value;
+      document.getElementById('meta-music-by').value = document.getElementById('edit-music-by').value;
+      document.getElementById('meta-lyrics-by').value= document.getElementById('edit-lyrics-by').value;
+      const album = document.getElementById('edit-album').value;
+      document.getElementById('meta-album').value = album;
+      sizeAlbumInput(document.getElementById('meta-album'));
+      document.getElementById('meta-year').value = document.getElementById('edit-year').value;
+      closeSongInfoEdit();
     }
 
     // ── Auto-size album input to its text content ─────────
