@@ -207,7 +207,7 @@
       cursor: pointer;
       padding: 0 0 0 5px;
       font-family: 'Quicksand', sans-serif;
-      vertical-align: middle;
+      vertical-align: -0.3em;
       line-height: 1;
     }
     .format-hint-inline-collapse:hover { color: rgba(100, 65, 20, 0.9); }
@@ -475,19 +475,17 @@
       color: rgba(100, 65, 20, 0.5);
     }
 
-    /* Artist input — full size with underline */
+    /* Artist input */
     .credits-field-input {
       width: 100%;
       background: transparent;
       border: none;
-      border-bottom: 1px solid rgba(100, 70, 30, 0.25);
       color: #2a1505;
       font-family: 'Quicksand', sans-serif;
-      font-size: 0.82rem;
+      font-size: 0.74rem;
       font-weight: 600;
-      padding: 3px 0 4px;
+      padding: 1px 0 2px;
       outline: none;
-      transition: border-color 0.2s;
     }
 
     .credits-field-input::placeholder {
@@ -1049,7 +1047,7 @@
 
               <!-- Row 1: Artist (left) | Album (right) -->
               <div class="credits-field">
-                <label class="credits-field-label">Artist *</label>
+                <label class="credits-field-label">Artist</label>
                 <input class="credits-field-input" id="meta-artist" type="text" placeholder="e.g. The Grateful Dead" />
                 <span class="credits-required-note" id="meta-artist-note">Artist is required to publish</span>
               </div>
