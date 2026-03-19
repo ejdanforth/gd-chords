@@ -1731,8 +1731,9 @@
         el.className = base + ' cols-3';
         el.style.height = Math.ceil(h / 3) + 'px';
       } else {
-        // Very long — 3 columns, page scrolls naturally
+        // Very long — 3 equal columns, page scrolls naturally
         el.className = base + ' cols-3';
+        el.style.height = Math.ceil(h / 3) + 'px';
       }
     }
 
