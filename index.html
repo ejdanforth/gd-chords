@@ -405,6 +405,16 @@
       /* height set dynamically by JS; omitted for scrollable case */
     }
 
+    .chord-loading {
+      font-family: 'Quicksand', sans-serif;
+      font-size: 0.95rem;
+      opacity: 0.45;
+      font-style: italic;
+      color: #2e1a06;
+      margin-top: 24px;
+      text-align: center;
+    }
+
     /* When chords are shown, give extra line spacing */
     .lyrics-body.chords-on .chord-line {
       margin-bottom: 6px;
@@ -889,13 +899,7 @@
 
     (async () => {
       try {
-        // Fetch song metadata and chord data in parallel
-        const [metaRes, chordsRes] = await Promise.all([
-          fetch(`${WORKER_URL}/meta/index`),
-          fetch(`${WORKER_URL}/songs`)
-        ]);
-
-        // Populate songs list
+        const metaRes = await fetch(`${WORKER_URL}/meta/index`);
         if (metaRes.ok) {
           const data = await metaRes.json();
           if (Array.isArray(data)) {
@@ -903,23 +907,8 @@
             songs.sort((a, b) => a.title.localeCompare(b.title));
           }
         }
-
-        // Populate chord data and inject scale tips
-        if (chordsRes.ok) {
-          const kvData = await chordsRes.json();
-          if (kvData && !kvData.error) {
-            for (const [id, entry] of Object.entries(kvData)) {
-              CHORDS_DATA[id] = entry;
-              if (entry.scales) {
-                for (const [sectionLabel, scales] of Object.entries(entry.scales)) {
-                  SCALES[`${id}:${sectionLabel}`] = scales;
-                }
-              }
-            }
-          }
-        }
       } catch (err) {
-        console.error('Failed to load data from KV:', err);
+        console.error('Failed to load song list from KV:', err);
       }
 
       renderList(songs);
@@ -1445,14 +1434,10 @@
     // ── Song list ──────────────────────────────────────────
     function songItemHtml(song) {
       const year      = song.year_written || (song.albums?.[0]?.year ?? '');
-      const hasChords = !!CHORDS_DATA[song.id];
-      const badge     = hasChords ? ' <span style="font-size:0.65rem;opacity:0.55;margin-left:4px;">♩</span>' : '';
       const editorHref = `chord-editor.html?id=${encodeURIComponent(song.id)}&title=${encodeURIComponent(song.title)}`;
-      const sideLink  = hasChords
-        ? `<a class="add-chords-link" href="${editorHref}" onclick="event.stopPropagation();sessionStorage.setItem('returnToSong','${song.id}')">edit chords</a>`
-        : `<a class="add-chords-link" href="${editorHref}" onclick="event.stopPropagation();sessionStorage.setItem('returnToSong','${song.id}')">no chords yet — add them!</a>`;
+      const sideLink  = `<a class="add-chords-link" href="${editorHref}" onclick="event.stopPropagation();sessionStorage.setItem('returnToSong','${song.id}')">edit chords</a>`;
       return `<li class="song-item" onclick="showLyrics('${song.id}')">
-        <span class="song-item-title">${song.title}${badge}</span>
+        <span class="song-item-title">${song.title}</span>
         <span class="song-item-right">
           <span class="song-item-year">${year}</span>
           ${sideLink}
@@ -1589,22 +1574,55 @@
       const song = songs.find(s => s.id === id);
       if (!song) return;
 
-      // Fetch full song data (includes lyrics) on first open, then cache in songs array
-      if (!song.lyrics) {
-        try {
-          const res = await fetch(`${WORKER_URL}/meta/${encodeURIComponent(id)}`);
-          if (res.ok) Object.assign(song, await res.json());
-        } catch (e) { /* continue — lyrics will show as unavailable */ }
-      }
-
+      // Transition to lyrics view immediately
       currentSongId = id;
       semitoneShift = 0;
       document.getElementById('song-title-display').textContent = song.title;
+      document.body.classList.add('lyrics-mode');
+      document.getElementById('main-header').style.display = 'none';
+      document.getElementById('search-view').style.display = 'none';
+      document.getElementById('lyrics-view').style.display = 'block';
+      window.scrollTo(0, 0);
+
+      // Show loading state while fetching
+      const lyricsEl = document.getElementById('lyrics-body');
+      lyricsEl.className = 'lyrics-body cols-1';
+      lyricsEl.innerHTML = '<p class="chord-loading">Loading…</p>';
+      document.getElementById('lyrics-chord-toggle').disabled = true;
+
+      // Fetch meta + chord data in parallel; skip if already cached
+      const metaPromise = song.lyrics
+        ? Promise.resolve(null)
+        : fetch(`${WORKER_URL}/meta/${encodeURIComponent(id)}`)
+            .then(r => r.ok ? r.json() : null).catch(() => null);
+
+      const chordPromise = (id in CHORDS_DATA)
+        ? Promise.resolve(CHORDS_DATA[id])
+        : fetch(`${WORKER_URL}/song/${encodeURIComponent(id)}`)
+            .then(r => r.status === 404 ? null : r.ok ? r.json() : null)
+            .catch(() => null);
+
+      const [metaData, chordData] = await Promise.all([metaPromise, chordPromise]);
+
+      // Bail out if user navigated away during fetch
+      if (currentSongId !== id) return;
+
+      // Merge meta into song object if freshly fetched
+      if (metaData) Object.assign(song, metaData);
+
+      // Cache chord result and populate SCALES
+      if (!(id in CHORDS_DATA)) {
+        CHORDS_DATA[id] = chordData;
+        if (chordData && chordData.scales) {
+          for (const [sectionLabel, scales] of Object.entries(chordData.scales)) {
+            SCALES[`${id}:${sectionLabel}`] = scales;
+          }
+        }
+      }
 
       const chordEntry = CHORDS_DATA[id];
       const hasChords  = !!chordEntry;
 
-      // Default: show chords & tips if chord data exists for this song
       showChords = hasChords;
       showTips   = hasChords;
       document.body.classList.toggle('tips-on', showTips);
@@ -1637,7 +1655,6 @@
         originalKeyNote.style.display = 'none';
       }
 
-      // Sync search-view button
       const searchToggle = document.getElementById('search-chord-toggle');
       searchToggle.classList.toggle('active', showChords);
       searchToggle.innerHTML = showChords ? 'Hide Chords &amp; Scale Tips' : 'Show Chords &amp; Scale Tips';
@@ -1648,20 +1665,12 @@
       const musicBy  = (song.music_by  || []).join(', ');
       const lyricsBy = (song.lyrics_by || []).join(', ');
       const albums   = (song.albums    || []).map(a => `${a.title} (${a.year})`).join(', ');
-
       const lines = [];
       if (musicBy)  lines.push(`<strong>Music:</strong> ${musicBy}`);
       if (lyricsBy && lyricsBy !== musicBy) lines.push(`<strong>Lyrics:</strong> ${lyricsBy}`);
       if (albums)   lines.push(`<strong>Album:</strong> ${albums}`);
-
       document.getElementById('credits-content').innerHTML = lines.join('<br>');
       document.getElementById('credits').style.display = 'block';
-
-      document.body.classList.add('lyrics-mode');
-      document.getElementById('main-header').style.display = 'none';
-      document.getElementById('search-view').style.display = 'none';
-      document.getElementById('lyrics-view').style.display = 'block';
-      window.scrollTo(0, 0);
     }
 
     // ── Render lyrics / chords for current song ────────────
