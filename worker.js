@@ -40,7 +40,8 @@ export default {
             artist: s.artist,
             albums: s.albums,
             music_by: s.music_by,
-            lyrics_by: s.lyrics_by
+            lyrics_by: s.lyrics_by,
+            ...(s.has_chords ? { has_chords: true } : {})
           }));
         await env.CHORDS_KV.put('meta:_index', JSON.stringify(index));
         return new Response(JSON.stringify({ ok: true, count: index.length }), {
@@ -106,7 +107,8 @@ export default {
           artist: data.artist,
           albums: data.albums,
           music_by: data.music_by,
-          lyrics_by: data.lyrics_by
+          lyrics_by: data.lyrics_by,
+          ...(data.has_chords ? { has_chords: true } : {})
         };
         const i = index.findIndex(s => s.id === data.id);
         if (i >= 0) {
@@ -117,6 +119,24 @@ export default {
         await env.CHORDS_KV.put('meta:_index', JSON.stringify(index));
 
         return new Response(JSON.stringify({ ok: true, id: id }), {
+          headers: { ...cors, 'Content-Type': 'application/json' }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), {
+          status: 500, headers: { ...cors, 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
+    // ── GET /song/:id — return a single chord entry ────────
+    if (request.method === 'GET' && url.pathname.startsWith('/song/')) {
+      try {
+        const id = url.pathname.slice(6); // strips "/song/"
+        const entry = await env.CHORDS_KV.get('song:' + id, { type: 'json' });
+        if (!entry) return new Response(JSON.stringify({ error: 'Not found' }), {
+          status: 404, headers: { ...cors, 'Content-Type': 'application/json' }
+        });
+        return new Response(JSON.stringify(entry), {
           headers: { ...cors, 'Content-Type': 'application/json' }
         });
       } catch (err) {
@@ -151,6 +171,18 @@ export default {
         const data = await request.json();
         if (!data.id) throw new Error('Missing song id');
         await env.CHORDS_KV.put('song:' + data.id, JSON.stringify(data));
+
+        // Mark song as having chords in meta + index
+        const meta = await env.CHORDS_KV.get('meta:' + data.id, { type: 'json' });
+        if (meta && !meta.has_chords) {
+          meta.has_chords = true;
+          await env.CHORDS_KV.put('meta:' + data.id, JSON.stringify(meta));
+          const index = await env.CHORDS_KV.get('meta:_index', { type: 'json' }) || [];
+          const i = index.findIndex(s => s.id === data.id);
+          if (i >= 0) index[i].has_chords = true;
+          await env.CHORDS_KV.put('meta:_index', JSON.stringify(index));
+        }
+
         return new Response(JSON.stringify({ ok: true, id: data.id }), {
           headers: { ...cors, 'Content-Type': 'application/json' }
         });

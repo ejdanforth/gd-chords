@@ -912,6 +912,13 @@
       }
 
       renderList(songs);
+
+      // Re-open song if returning from chord editor
+      const returnTo = sessionStorage.getItem('returnToSong');
+      if (returnTo) {
+        sessionStorage.removeItem('returnToSong');
+        showLyrics(returnTo);
+      }
     })();
 
     // ── State ──────────────────────────────────────────────
@@ -1434,10 +1441,11 @@
     // ── Song list ──────────────────────────────────────────
     function songItemHtml(song) {
       const year      = song.year_written || (song.albums?.[0]?.year ?? '');
+      const badge     = song.has_chords ? ' <span style="font-size:0.65rem;opacity:0.55;margin-left:4px;">♩</span>' : '';
       const editorHref = `chord-editor.html?id=${encodeURIComponent(song.id)}&title=${encodeURIComponent(song.title)}`;
       const sideLink  = `<a class="add-chords-link" href="${editorHref}" onclick="event.stopPropagation();sessionStorage.setItem('returnToSong','${song.id}')">edit chords</a>`;
       return `<li class="song-item" onclick="showLyrics('${song.id}')">
-        <span class="song-item-title">${song.title}</span>
+        <span class="song-item-title">${song.title}${badge}</span>
         <span class="song-item-right">
           <span class="song-item-year">${year}</span>
           ${sideLink}
@@ -1759,14 +1767,6 @@
       }, 150);
     });
 
-    // ── Return to song view when coming back from chord editor ──
-    (function () {
-      const returnTo = sessionStorage.getItem('returnToSong');
-      if (returnTo) {
-        sessionStorage.removeItem('returnToSong');
-        showLyrics(returnTo);
-      }
-    })();
 
     // ── Add Song Modal ─────────────────────────────────────
 
