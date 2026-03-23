@@ -1472,17 +1472,22 @@
             }
           }
 
+          // Tonic-frequency bonus: the tonic chord tends to appear most often
+          const tonicEntry = parsed.find(c => c.root === keyNote);
+          if (tonicEntry) score += tonicEntry.freq * 2;
+
           results.push({ key: keyNote, mode, score, diatonicCount, totalAppearances });
         }
       }
 
-      // Tiebreaker: prefer key whose tonic appears as a chord root
-      const chordRoots = new Set(parsed.map(c => c.root));
+      // Tiebreaker: prefer key whose tonic root is most frequent
+      const rootFreqs = {};
+      parsed.forEach(c => { rootFreqs[c.root] = (rootFreqs[c.root] || 0) + c.freq; });
       results.sort((a, b) => {
         if (b.score !== a.score) return b.score - a.score;
-        const aTonic = chordRoots.has(a.key) ? 1 : 0;
-        const bTonic = chordRoots.has(b.key) ? 1 : 0;
-        return (bTonic - aTonic) || a.key.localeCompare(b.key);
+        const aFreq = rootFreqs[a.key] || 0;
+        const bFreq = rootFreqs[b.key] || 0;
+        return (bFreq - aFreq) || a.key.localeCompare(b.key);
       });
       return results;
     }
@@ -1763,6 +1768,8 @@
     }
 
     // ── Get all unique chord names across all sections ─────
+    // Returns array of { display, lookup } where display is the original chord
+    // name (e.g. "F/C") and lookup is the base chord for voicing lookup (e.g. "F").
     function getAllUniqueChords() {
       const text = document.getElementById('chord-input').value;
       const sections = parseEditorInput(text);
@@ -1770,9 +1777,10 @@
       const result = [];
       for (const sec of sections) {
         for (const chord of extractSectionChords(sec.lines)) {
-          // Strip slash-bass notation for lookup but keep original for display
-          const base = chord.replace(/\/[A-G][b#]?$/, '');
-          if (!seen.has(base)) { seen.add(base); result.push(base); }
+          if (!seen.has(chord)) {
+            seen.add(chord);
+            result.push({ display: chord, lookup: chord.replace(/\/[A-G][b#]?$/, '') });
+          }
         }
       }
       return result;
@@ -1788,15 +1796,18 @@
         return;
       }
 
-      palette.innerHTML = chords.map(chordName => {
-        // Look up in static table first, then generate
-        const voicings = (typeof CHORD_VOICINGS !== 'undefined' && CHORD_VOICINGS[chordName])
-          || generateBarreVoicings(chordName)
+      palette.innerHTML = chords.map(({ display, lookup }) => {
+        // Look up in static table first, then generate (use base chord for slash chords)
+        const voicings = (typeof CHORD_VOICINGS !== 'undefined' && CHORD_VOICINGS[lookup])
+          || generateBarreVoicings(lookup)
           || null;
+
+        const isSlash = display !== lookup;
+        const slashNote = isSlash ? `<span style="font-size:0.6rem;color:rgba(100,70,30,0.45);font-style:italic;margin-left:3px;">(${escHtml(display)})</span>` : '';
 
         if (!voicings || voicings.length === 0) {
           return `<div class="palette-chord-group">
-            <div class="palette-chord-name">${escHtml(chordName)}</div>
+            <div class="palette-chord-name">${escHtml(display)}</div>
             <div class="palette-voicings"><span style="font-size:0.65rem;color:rgba(100,70,30,0.4);font-style:italic;">no diagram</span></div>
           </div>`;
         }
@@ -1809,7 +1820,7 @@
         ).join('');
 
         return `<div class="palette-chord-group">
-          <div class="palette-chord-name">${escHtml(chordName)}</div>
+          <div class="palette-chord-name">${escHtml(lookup)}${slashNote}</div>
           <div class="palette-voicings">${cards}</div>
         </div>`;
       }).join('');
