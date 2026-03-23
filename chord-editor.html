@@ -143,11 +143,43 @@
       color: rgba(55, 30, 100, 0.55);
       font-style: italic;
       text-align: right;
-      max-width: 320px;
+      max-width: 420px;
       line-height: 1.4;
     }
     .key-suggestion-note.error {
       color: rgba(160, 40, 40, 0.65);
+    }
+
+    /* Key suggestion chips */
+    .key-suggestion-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 4px;
+      justify-content: flex-end;
+      max-width: 420px;
+    }
+    .key-chip {
+      background: rgba(80, 55, 120, 0.08);
+      border: 1px solid rgba(80, 55, 120, 0.3);
+      border-radius: 20px;
+      color: rgba(55, 30, 100, 0.7);
+      font-family: 'Quicksand', sans-serif;
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 3px 9px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .key-chip:hover {
+      background: rgba(80, 55, 120, 0.18);
+      border-color: rgba(80, 55, 120, 0.6);
+      color: rgba(55, 30, 100, 0.95);
+    }
+    .key-chip.active {
+      background: rgba(80, 55, 120, 0.22);
+      border-color: rgba(80, 55, 120, 0.7);
+      color: rgba(55, 30, 100, 1);
     }
 
     /* ── Format hint (collapsible instructions panel) ── */
@@ -982,14 +1014,22 @@
         <div class="header-key-row">
           <span class="key-label">Key:</span>
           <select class="key-select" id="key-select">
-            <option value="">— key —</option>
+            <option value="">— note —</option>
             <option>C</option><option>C#</option><option>D</option><option>Eb</option>
             <option>E</option><option>F</option><option>F#</option><option>G</option>
             <option>Ab</option><option>A</option><option>Bb</option><option>B</option>
           </select>
+          <select class="key-select" id="mode-select">
+            <option value="">— mode —</option>
+            <option value="major">major</option>
+            <option value="minor">minor</option>
+            <option value="mixolydian">mixolydian</option>
+            <option value="dorian">dorian</option>
+          </select>
           <button class="suggest-key-btn" id="suggest-key-btn" onclick="runSuggestKey()">✦ Suggest</button>
         </div>
         <div class="key-suggestion-note" id="key-suggestion-note"></div>
+        <div class="key-suggestion-chips" id="key-suggestion-chips"></div>
       </div>
     </div>
 
@@ -1312,10 +1352,13 @@
 
       if (!entry) return; // new song — leave editor blank
 
-      // Set key dropdown
+      // Set key + mode dropdowns (stored as "F major" or legacy plain "F")
       if (entry.key) {
+        const parts = entry.key.trim().split(/\s+/);
         const ks = document.getElementById('key-select');
-        if (ks) ks.value = entry.key;
+        const ms = document.getElementById('mode-select');
+        if (ks) ks.value = parts[0];
+        if (ms && parts[1]) ms.value = parts[1];
       }
 
       // Convert sections array → textarea text
@@ -1328,100 +1371,112 @@
       }
     })();
 
+    // ── Collect chord data with frequency + section-first flags ──
+    function getChordDataFromSections() {
+      const text = document.getElementById('chord-input').value;
+      const sections = parseEditorInput(text);
+      const re = /\[([A-G][b#]?[^\]]*)\]/g;
+      const chordCounts = {};        // chord → total appearances
+      const sectionFirstChords = new Set(); // first chord of each section
+
+      for (const sec of sections) {
+        let firstFound = false;
+        for (const line of sec.lines) {
+          const r = new RegExp(re.source, 'g');
+          let m;
+          while ((m = r.exec(line)) !== null) {
+            const raw  = m[1].replace(/\/[A-G][b#]?$/, ''); // strip slash bass
+            chordCounts[raw] = (chordCounts[raw] || 0) + 1;
+            if (!firstFound) { sectionFirstChords.add(raw); firstFound = true; }
+          }
+        }
+      }
+      return { chordCounts, sectionFirstChords };
+    }
+
     // ── Diatonic key-scoring algorithm ────────────────────
-    // Returns an array of { key, mode, score, diatonicCount, total }
-    // sorted best-first.  Works purely client-side — no network needed.
-    function suggestKey(chordNames) {
+    // Accepts { chordCounts, sectionFirstChords } from getChordDataFromSections().
+    // Weights by frequency and gives a bonus for chords that open sections.
+    // Returns an array of { key, mode, score, diatonicCount, totalAppearances }
+    // sorted best-first.
+    function suggestKey({ chordCounts, sectionFirstChords }) {
       const CHR  = ['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
       const NORM = {'Db':'C#','D#':'Eb','Gb':'F#','G#':'Ab','A#':'Bb'};
 
-      // Parse chord names into {root, quality} pairs.
-      // Normalize exotic spellings first (same rules as generateBarreVoicings).
       function normalizeQual(s) {
         return s
           .replace(/[∆Δ△]7/g,'maj7').replace(/[∆Δ△]/g,'maj7').replace(/M7/g,'maj7')
           .replace(/min/g,'m').replace(/-/g,'m')
           .replace(/o7/g,'dim7').replace(/o(?!\w)/g,'dim').replace(/ø/g,'m7b5');
       }
-      const parsed = chordNames.map(c => {
-        const n = normalizeQual(c);
-        const m = n.match(/^([A-G][b#]?)(.*)$/);
-        if (!m) return null;
-        return { root: NORM[m[1]] || m[1], quality: m[2] || '' };
+
+      // Build weighted chord list: { root, quality, freq, isFirst }
+      const parsed = Object.entries(chordCounts).map(([chord, freq]) => {
+        const n = normalizeQual(chord);
+        const match = n.match(/^([A-G][b#]?)(.*)$/);
+        if (!match) return null;
+        return {
+          root: NORM[match[1]] || match[1],
+          quality: match[2] || '',
+          freq,
+          isFirst: sectionFirstChords.has(chord)
+        };
       }).filter(Boolean);
+
       if (parsed.length === 0) return [];
 
-      // Scale degrees (semitones from root) for major, natural minor, and mixolydian.
-      const MAJOR_DEG      = [0, 2, 4, 5, 7, 9, 11];
-      const MINOR_DEG      = [0, 2, 3, 5, 7, 8, 10];
-      const MIXOLYDIAN_DEG = [0, 2, 4, 5, 7, 9, 10]; // major with ♭7
+      const totalAppearances = parsed.reduce((s, c) => s + c.freq, 0);
 
-      // For each scale degree: accepted chord qualities (most common first).
-      // Using arrays lets us award a quality-match bonus without hard exclusions.
-      const MAJOR_Q = [
-        ['','maj7','add9','6','9'],          // I
-        ['m','m7'],                          // ii
-        ['m','m7'],                          // iii
-        ['','maj7','add9'],                  // IV
-        ['','7','9','sus4'],                 // V  (dom 7th very common)
-        ['m','m7'],                          // vi
-        ['dim','dim7','m7b5'],               // vii°
-      ];
-      const MINOR_Q = [
-        ['m','m7'],                          // i
-        ['dim','m7b5','dim7'],               // ii°
-        ['','maj7'],                         // III
-        ['m','m7'],                          // iv
-        ['m','m7','','7','9'],               // v  (often raised to V)
-        ['','maj7','6'],                     // VI
-        ['','7'],                            // VII
-      ];
-      // Mixolydian: like major but the 7th degree is ♭7 (a major chord, not diminished).
-      // Extremely common in GD / rock: the flat-VII chord (e.g. A in the key of B)
-      // is the hallmark of this mode.
-      const MIXOLYDIAN_Q = [
-        ['','maj7','add9','6','9'],          // I
-        ['m','m7'],                          // ii
-        ['m','m7'],                          // iii
-        ['','maj7','add9'],                  // IV
-        ['m','m7','','7'],                   // v  (often major or dominant in practice)
-        ['','maj7','6'],                     // VI
-        ['','7','9'],                        // ♭VII  ← the defining chord
+      // Scale degrees and quality expectations per mode
+      const MODES = [
+        {
+          name: 'major',
+          deg: [0,2,4,5,7,9,11],
+          q:   [['','maj7','add9','6','9'],['m','m7'],['m','m7'],['','maj7','add9'],['','7','9','sus4'],['m','m7'],['dim','dim7','m7b5']]
+        },
+        {
+          name: 'minor',
+          deg: [0,2,3,5,7,8,10],
+          q:   [['m','m7'],['dim','m7b5','dim7'],['','maj7'],['m','m7'],['m','m7','','7','9'],['','maj7','6'],['','7']]
+        },
+        {
+          name: 'mixolydian',
+          deg: [0,2,4,5,7,9,10],
+          q:   [['','maj7','add9','6','9'],['m','m7'],['m','m7'],['','maj7','add9'],['m','m7','','7'],['','maj7','6'],['','7','9']]
+        },
+        {
+          name: 'dorian',
+          deg: [0,2,3,5,7,9,10],
+          q:   [['m','m7'],['m','m7'],['','maj7'],['','7','9'],['m','m7'],['dim','m7b5'],['','maj7']]
+        },
       ];
 
       const results = [];
 
       for (const keyNote of CHR) {
         const ki = CHR.indexOf(keyNote);
-
-        for (const [degrees, qualities, mode] of [
-          [MAJOR_DEG,      MAJOR_Q,      'major'],
-          [MINOR_DEG,      MINOR_Q,      'minor'],
-          [MIXOLYDIAN_DEG, MIXOLYDIAN_Q, 'mixolydian'],
-        ]) {
+        for (const { name: mode, deg, q } of MODES) {
           let score = 0, diatonicCount = 0;
 
-          for (const { root, quality } of parsed) {
+          for (const { root, quality, freq, isFirst } of parsed) {
             const ri = CHR.indexOf(root);
             if (ri === -1) continue;
             const interval  = (ri - ki + 12) % 12;
-            const degreeIdx = degrees.indexOf(interval);
+            const degreeIdx = deg.indexOf(interval);
 
             if (degreeIdx !== -1) {
-              diatonicCount++;
-              score += 2;                                      // diatonic root
-              if (qualities[degreeIdx].includes(quality)) score += 1; // quality match
+              diatonicCount += freq;
+              score += freq * 2;                                  // frequency-weighted diatonic bonus
+              if (q[degreeIdx].includes(quality)) score += freq;  // frequency-weighted quality match
+              if (isFirst) score += 8;                            // strong tonic-center signal
             }
           }
 
-          results.push({ key: keyNote, mode, score, diatonicCount, total: parsed.length });
+          results.push({ key: keyNote, mode, score, diatonicCount, totalAppearances });
         }
       }
 
-      // Tiebreaker: prefer the key whose tonic note appears as a chord root in the
-      // progression (strong tonal-center signal).  Relative keys (e.g. B major /
-      // C# minor) always score identically on diatonic counting alone — this is
-      // what resolves them.
+      // Tiebreaker: prefer key whose tonic appears as a chord root
       const chordRoots = new Set(parsed.map(c => c.root));
       results.sort((a, b) => {
         if (b.score !== a.score) return b.score - a.score;
@@ -1432,45 +1487,57 @@
       return results;
     }
 
+    // ── Apply a key+mode suggestion to the dropdowns ───────
+    function applyKeySuggestion(keyNote, mode) {
+      document.getElementById('key-select').value  = keyNote;
+      document.getElementById('mode-select').value = mode;
+      // Update chip highlight
+      document.querySelectorAll('.key-chip').forEach(chip => {
+        chip.classList.toggle('active', chip.dataset.key === keyNote && chip.dataset.mode === mode);
+      });
+    }
+
     // ── Suggest-key button handler ─────────────────────────
     function runSuggestKey() {
-      const noteEl = document.getElementById('key-suggestion-note');
-      const chords = getAllUniqueChords();
+      const noteEl  = document.getElementById('key-suggestion-note');
+      const chipsEl = document.getElementById('key-suggestion-chips');
+      const data    = getChordDataFromSections();
 
-      if (chords.length === 0) {
+      if (Object.keys(data.chordCounts).length === 0) {
         noteEl.textContent = 'Add some chords first.';
         noteEl.className   = 'key-suggestion-note error';
+        chipsEl.innerHTML  = '';
         return;
       }
 
-      const results = suggestKey(chords);
+      const results = suggestKey(data);
       if (results.length === 0) {
         noteEl.textContent = 'Couldn\'t parse any chord names.';
         noteEl.className   = 'key-suggestion-note error';
+        chipsEl.innerHTML  = '';
         return;
       }
 
       const best = results[0];
+      applyKeySuggestion(best.key, best.mode);
 
-      // Set the dropdown
-      const ks = document.getElementById('key-select');
-      ks.value = best.key;
-
-      // Build the confidence note
-      const pct  = Math.round((best.diatonicCount / best.total) * 100);
-      const runners = results.slice(1, 4).filter(r => r.score >= best.score * 0.75);
-      const tiedRelative = runners.find(r => r.score === best.score);  // same-score = relative key
-      const alts = runners.map(r => `${r.key} ${r.mode}`).join(', ');
-
-      let msg = `Suggested ${best.key} ${best.mode} — ${best.diatonicCount}/${best.total} roots diatonic (${pct}%)`;
-      if (tiedRelative) {
-        msg += `. Tied with ${tiedRelative.key} ${tiedRelative.mode} (relative key — chose based on tonic presence)`;
-      } else if (alts) {
-        msg += `. Also: ${alts}`;
-      }
-
-      noteEl.textContent = msg;
+      // Confidence note
+      const pct = Math.round((best.diatonicCount / best.totalAppearances) * 100);
+      noteEl.textContent = `Best match: ${best.key} ${best.mode} (${pct}% of chord appearances diatonic)`;
       noteEl.className   = 'key-suggestion-note';
+
+      // Top 3 clickable chips (deduplicated, skip duplicate scores that are just enharmonic)
+      const top = results.slice(0, 8).filter((r, i, arr) =>
+        i === 0 || r.score >= arr[0].score * 0.80
+      ).slice(0, 3);
+
+      chipsEl.innerHTML = top.map((r, i) =>
+        `<button class="key-chip${i === 0 ? ' active' : ''}"
+          data-key="${r.key}" data-mode="${r.mode}"
+          onclick="applyKeySuggestion('${r.key}','${r.mode}')">
+          ${r.key} ${r.mode}
+        </button>`
+      ).join('');
     }
 
     // ── Chord voicing generator (self-contained copy from songs.html) ──
@@ -1846,10 +1913,12 @@
       const album    = document.getElementById('meta-album')?.value.trim()    || '';
       const year     = document.getElementById('meta-year')?.value.trim()     || '';
 
+      const keyNote = document.getElementById('key-select').value;
+      const keyMode = document.getElementById('mode-select').value;
       const out = {
         id:       songId,
         title:    songTitle,
-        key:      document.getElementById('key-select').value,
+        key:      keyMode ? `${keyNote} ${keyMode}` : keyNote,
         sections: parseEditorInput(document.getElementById('chord-input').value)
       };
 
