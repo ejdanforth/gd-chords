@@ -1800,6 +1800,26 @@
         return;
       }
 
+      // Chords hidden but we have chord-editor sections — strip markers, show text only
+      if (chordEntry && chordEntry.sections) {
+        const html = chordEntry.sections.map(sec => {
+          const linesHtml = sec.lines
+            .map(line => line.replace(/\[[^\]]+\]/g, '').trimEnd())
+            .filter(line => line.trim())
+            .map(line => `<div class="lyric-line">${escHtml(line)}</div>`)
+            .join('');
+          return linesHtml ? `<div class="lyrics-section">
+            <div class="section-label">${escHtml(sec.label)}</div>
+            <div>${linesHtml}</div>
+          </div>` : '';
+        }).join('') || '<p style="opacity:0.5;font-style:italic;">Lyrics not available.</p>';
+        lyricsEl.className = 'lyrics-body';
+        lyricsEl.style.cssText = 'column-count:1;height:auto;max-width:none;';
+        lyricsEl.innerHTML = html;
+        requestAnimationFrame(() => { applyColumnLayout(lyricsEl, false); });
+        return;
+      }
+
       // Plain lyrics from songs-data
       const sections = (song.lyrics || []).filter(s => !s.text.includes('Read More'));
       const html = sections.map(s => {
