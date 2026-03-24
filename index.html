@@ -1743,9 +1743,10 @@
       editLink.onclick = () => sessionStorage.setItem('returnToSong', id);
 
       if (hasChords && chordEntry.key) {
-        keySelect.value = chordEntry.key;
+        // key may be "F major" — strip mode for the select (which only has note names)
+        keySelect.value = chordEntry.key.split(' ')[0];
         originalKeyNote.textContent = `Original key: ${chordEntry.key}`;
-        keyRow.style.display = showChords ? 'flex' : 'none';
+        keyRow.style.display = 'flex';
       } else {
         keyRow.style.display = 'none';
       }

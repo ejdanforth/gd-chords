@@ -1292,6 +1292,27 @@
       // we fall back to songs-data.js below.
       populateMetaFields(paramArtist, paramMusicBy, paramLyricsBy, paramAlbum, paramYear);
 
+      // Step 0a: Fetch metadata from KV and fill any blank Song Info fields.
+      // This covers songs added via "Add new song" that aren't in songs-data.js.
+      try {
+        const metaRes = await fetch(`${WORKER_URL}/meta/${encodeURIComponent(songId)}`);
+        if (metaRes.ok) {
+          const meta = await metaRes.json();
+          if (meta && !meta.error) {
+            const fillIfEmpty = (id, val) => {
+              const el = document.getElementById(id);
+              if (el && !el.value && val) el.value = String(val);
+            };
+            fillIfEmpty('meta-artist',    meta.artist || '');
+            fillIfEmpty('meta-music-by',  Array.isArray(meta.music_by)  ? meta.music_by.join(', ')  : (meta.music_by  || ''));
+            fillIfEmpty('meta-lyrics-by', Array.isArray(meta.lyrics_by) ? meta.lyrics_by.join(', ') : (meta.lyrics_by || ''));
+            fillIfEmpty('meta-album',     meta.albums?.[0]?.title || '');
+            fillIfEmpty('meta-year',      meta.albums?.[0]?.year  ? String(meta.albums[0].year) : '');
+            sizeAlbumInput(document.getElementById('meta-album'));
+          }
+        }
+      } catch (_) { /* Worker unavailable — fall through */ }
+
       // Step 0b: Backfill any blank Song Info fields from songs-data.js metadata.
       const songMeta = typeof SONGS_DATA !== 'undefined'
         ? SONGS_DATA.songs.find(s => s.id === songId)
