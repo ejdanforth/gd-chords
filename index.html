@@ -382,7 +382,7 @@
       line-height: 1.1;
       color: #2e1a06;
       column-gap: 44px;
-      column-fill: auto;
+      column-fill: balance;
     }
 
     .lyrics-body.cols-1 {
@@ -1743,14 +1743,8 @@
         el.className = base + ' cols-1';
       } else if (h <= availH * 2) {
         el.className = base + ' cols-2';
-        el.style.height = Math.ceil(h / 2) + 'px';
-      } else if (h <= availH * 3) {
-        el.className = base + ' cols-3';
-        el.style.height = Math.ceil(h / 3) + 'px';
       } else {
-        // Very long — 3 equal columns, page scrolls naturally
         el.className = base + ' cols-3';
-        el.style.height = Math.ceil(h / 3) + 'px';
       }
     }
 
