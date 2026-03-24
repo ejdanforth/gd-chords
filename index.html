@@ -1657,7 +1657,7 @@
     function changeKey(newKey) {
       const chordEntry = CHORDS_DATA[currentSongId];
       if (!chordEntry || !chordEntry.key) return;
-      const originalIdx = keyIndex(chordEntry.key);
+      const originalIdx = keyIndex(chordEntry.key.split(' ')[0]);
       const newIdx      = keyIndex(normalizeRoot(newKey));
       if (originalIdx === -1 || newIdx === -1) return;
       semitoneShift = (newIdx - originalIdx + 12) % 12;
