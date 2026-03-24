@@ -368,12 +368,57 @@
       outline: none;
     }
 
+    /* ── Lyrics view header ── */
+    .lyrics-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      gap: 24px;
+    }
+
+    .lyrics-header-left {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .lyrics-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .lyrics-header-title {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      text-align: right;
+    }
+
     .song-title-display {
       font-family: 'Cinzel Decorative', cursive;
       font-size: 1.5rem;
       color: #5a2800;
-      margin-bottom: 28px;
       line-height: 1.3;
+    }
+
+    .song-artist-display {
+      font-family: 'Quicksand', sans-serif;
+      font-size: 0.82rem;
+      color: rgba(90, 40, 0, 0.6);
+      font-weight: 500;
+      margin-top: 4px;
+    }
+
+    /* ── Key row (above lyrics) ── */
+    .key-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
     }
 
     /* ── Multi-column lyrics ── */
@@ -855,23 +900,34 @@
 
     <!-- Lyrics view -->
     <div id="lyrics-view">
-      <button class="lyrics-back-btn" onclick="showSearch()">← Back to search</button>
 
-      <!-- Chord controls -->
-      <div class="chord-controls" id="chord-controls">
-        <button class="chord-toggle-btn" id="lyrics-chord-toggle" onclick="toggleChords()">Show Chords &amp; Scale Tips</button>
-        <span class="no-chords-note" id="no-chords-note" style="display:none;">No chord chart for this song yet</span>
-        <a class="edit-chords-link" id="edit-chords-link" href="#" onclick="event.stopPropagation()">✎ Edit lyrics &amp; chords</a>
-        <span class="key-label" id="key-label" style="display:none;">Key:</span>
-        <select class="key-select" id="key-select" onchange="changeKey(this.value)" style="display:none;">
+      <!-- Header row: back/controls on left, title/artist on right -->
+      <div class="lyrics-header">
+        <div class="lyrics-header-left">
+          <button class="lyrics-back-btn" onclick="showSearch()">← Back to search</button>
+          <div class="lyrics-controls">
+            <button class="chord-toggle-btn" id="lyrics-chord-toggle" onclick="toggleChords()">Show Chords &amp; Scale Tips</button>
+            <span class="no-chords-note" id="no-chords-note" style="display:none;">No chord chart for this song yet</span>
+            <a class="edit-chords-link" id="edit-chords-link" href="#" onclick="event.stopPropagation()">✎ Edit lyrics &amp; chords</a>
+          </div>
+        </div>
+        <div class="lyrics-header-title">
+          <div class="song-title-display" id="song-title-display"></div>
+          <div class="song-artist-display" id="song-artist-display"></div>
+        </div>
+      </div>
+
+      <!-- Key row: above lyrics, aligned to first column -->
+      <div class="key-row" id="key-row" style="display:none;">
+        <span class="key-label">Key:</span>
+        <select class="key-select" id="key-select" onchange="changeKey(this.value)">
           <option>C</option><option>C#</option><option>D</option><option>Eb</option>
           <option>E</option><option>F</option><option>F#</option><option>G</option>
           <option>Ab</option><option>A</option><option>Bb</option><option>B</option>
         </select>
-        <span class="original-key-note" id="original-key-note" style="display:none;"></span>
+        <span class="original-key-note" id="original-key-note"></span>
       </div>
 
-      <div class="song-title-display" id="song-title-display"></div>
       <div class="lyrics-body" id="lyrics-body"></div>
     </div>
 
@@ -1555,13 +1611,10 @@
         btn.innerHTML = label;
       });
 
-      // Show/hide key controls
+      // Show/hide key row
       const chordEntry = CHORDS_DATA[currentSongId];
       if (chordEntry && chordEntry.key) {
-        const show = showChords;
-        document.getElementById('key-label').style.display        = show ? 'inline'       : 'none';
-        document.getElementById('key-select').style.display       = show ? 'inline-block' : 'none';
-        document.getElementById('original-key-note').style.display = show ? 'inline'      : 'none';
+        document.getElementById('key-row').style.display = showChords ? 'flex' : 'none';
       }
 
       if (currentSongId) renderCurrentLyrics();
@@ -1586,6 +1639,7 @@
       currentSongId = id;
       semitoneShift = 0;
       document.getElementById('song-title-display').textContent = song.title;
+      document.getElementById('song-artist-display').textContent = song.artist || '';
       document.body.classList.add('lyrics-mode');
       document.getElementById('main-header').style.display = 'none';
       document.getElementById('search-view').style.display = 'none';
@@ -1637,7 +1691,7 @@
 
       const lyricsToggle    = document.getElementById('lyrics-chord-toggle');
       const noChordNote     = document.getElementById('no-chords-note');
-      const keyLabel        = document.getElementById('key-label');
+      const keyRow          = document.getElementById('key-row');
       const keySelect       = document.getElementById('key-select');
       const originalKeyNote = document.getElementById('original-key-note');
 
@@ -1653,14 +1707,10 @@
 
       if (hasChords && chordEntry.key) {
         keySelect.value = chordEntry.key;
-        keyLabel.style.display        = showChords ? 'inline'       : 'none';
-        keySelect.style.display       = showChords ? 'inline-block' : 'none';
-        originalKeyNote.textContent   = `Original key: ${chordEntry.key}`;
-        originalKeyNote.style.display = showChords ? 'inline'       : 'none';
+        originalKeyNote.textContent = `Original key: ${chordEntry.key}`;
+        keyRow.style.display = showChords ? 'flex' : 'none';
       } else {
-        keyLabel.style.display        = 'none';
-        keySelect.style.display       = 'none';
-        originalKeyNote.style.display = 'none';
+        keyRow.style.display = 'none';
       }
 
       const searchToggle = document.getElementById('search-chord-toggle');
