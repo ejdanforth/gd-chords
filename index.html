@@ -945,6 +945,13 @@
     let songs = [];
     let selectedIdx = -1;
 
+    // ── Browser back/forward button support ───────────────
+    window.addEventListener('popstate', function(e) {
+      const id = e.state?.song || new URLSearchParams(window.location.search).get('song');
+      if (id) showLyrics(id);
+      else showSearch();
+    });
+
     // ── Keyboard navigation for search results ─────────────
     document.addEventListener('keydown', function(e) {
       if (document.getElementById('search-view').style.display === 'none') return;
@@ -991,11 +998,15 @@
 
       renderList(songs);
 
-      // Re-open song if returning from chord editor
+      // Re-open song if returning from chord editor (takes priority)
       const returnTo = sessionStorage.getItem('returnToSong');
       if (returnTo) {
         sessionStorage.removeItem('returnToSong');
         showLyrics(returnTo);
+      } else {
+        // Restore song from URL param (e.g. after page reload)
+        const urlSong = new URLSearchParams(window.location.search).get('song');
+        if (urlSong) showLyrics(urlSong);
       }
     })();
 
@@ -1658,6 +1669,9 @@
       const song = songs.find(s => s.id === id);
       if (!song) return;
 
+      // Update URL so reload restores this song
+      history.pushState({ song: id }, '', `?song=${encodeURIComponent(id)}`);
+
       // Transition to lyrics view immediately
       currentSongId = id;
       semitoneShift = 0;
@@ -2006,6 +2020,7 @@
 
     // ── Back to search ─────────────────────────────────────
     function showSearch() {
+      history.pushState({}, '', location.pathname);
       currentSongId = null;
       showChords    = false;
       showTips      = false;
