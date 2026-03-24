@@ -2204,6 +2204,24 @@
       renderPreview();
     });
 
+    // ── Synced proportional scroll ──────────────────────
+    (function () {
+      const input   = document.getElementById('chord-input');
+      const preview = document.getElementById('preview-panel');
+      let syncing = false;
+
+      function syncScroll(source, target) {
+        if (syncing) return;
+        syncing = true;
+        const ratio = source.scrollTop / (source.scrollHeight - source.clientHeight || 1);
+        target.scrollTop = ratio * (target.scrollHeight - target.clientHeight);
+        requestAnimationFrame(() => { syncing = false; });
+      }
+
+      input.addEventListener('scroll',   () => syncScroll(input, preview));
+      preview.addEventListener('scroll', () => syncScroll(preview, input));
+    })();
+
   </script>
 </body>
 </html>
