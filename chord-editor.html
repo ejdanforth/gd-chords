@@ -276,6 +276,47 @@
       font-size: 0.76rem;
     }
 
+    /* Chord symbols reference table */
+    .chord-symbols-section {
+      margin-top: 14px;
+      border-top: 1px solid rgba(120, 90, 40, 0.15);
+      padding-top: 10px;
+    }
+    .chord-symbols-heading {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(80, 50, 15, 0.5);
+      margin-bottom: 6px;
+    }
+    .chord-symbol-row {
+      display: grid;
+      grid-template-columns: 16px 1fr auto auto;
+      gap: 0 6px;
+      align-items: baseline;
+      padding: 2px 0;
+      font-size: 0.74rem;
+      color: rgba(60, 35, 10, 0.75);
+    }
+    .cs-sym {
+      font-weight: 700;
+      color: rgba(80, 50, 15, 0.9);
+      font-size: 0.85rem;
+    }
+    .cs-desc { color: rgba(60, 35, 10, 0.6); }
+    .cs-eg {
+      font-family: 'Courier New', monospace;
+      font-size: 0.7rem;
+      color: rgba(60, 35, 10, 0.65);
+    }
+    .cs-key {
+      font-size: 0.67rem;
+      color: rgba(80, 50, 15, 0.4);
+      text-align: right;
+      white-space: nowrap;
+    }
+
     /* Collapse toggle button at bottom of expanded panel */
     .format-hint-toggle {
       display: none;
@@ -1055,6 +1096,14 @@
               <code>[E]With the mo[D]rning sun…</code>
               <div class="format-example-eq">= </div>
               <div class="format-chord-preview lyrics-body chords-on"><span class="chord-line"><span class="chord-segment"><span class="chord-name">E</span><span class="chord-lyric">With the mo</span></span><span class="chord-segment"><span class="chord-name">D</span><span class="chord-lyric">rning sun…</span></span></span></div>
+            </div>
+            <div class="chord-symbols-section">
+              <div class="chord-symbols-heading">Chord Symbols</div>
+              <div class="chord-symbol-row"><span class="cs-sym">∆</span><span class="cs-desc">Major 7</span><span class="cs-eg">D∆7 = Dmaj7</span><span class="cs-key">⌥J</span></div>
+              <div class="chord-symbol-row"><span class="cs-sym">ø</span><span class="cs-desc">Half-dim</span><span class="cs-eg">Dø7 = Dm7b5</span><span class="cs-key">⌥O</span></div>
+              <div class="chord-symbol-row"><span class="cs-sym">°</span><span class="cs-desc">Diminished</span><span class="cs-eg">D°7 = Ddim7</span><span class="cs-key">⌥⇧8</span></div>
+              <div class="chord-symbol-row"><span class="cs-sym">+</span><span class="cs-desc">Augmented</span><span class="cs-eg">D+ = Daug</span><span class="cs-key"></span></div>
+              <div class="chord-symbol-row"><span class="cs-sym">♭</span><span class="cs-desc">Flat</span><span class="cs-eg">D7♭9 = D7b9</span><span class="cs-key">⌥,</span></div>
             </div>
             <button class="format-hint-toggle" onclick="collapseFormatHint(event)">← Hide</button>
           </div>
